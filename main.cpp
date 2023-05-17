@@ -52,7 +52,7 @@ void initOpenCV() {
 class Interface {
 public:
     virtual void applyAll() = 0;
-    virtual void writeImg() const = 0;
+    virtual void write() const = 0;
     virtual istream& read(istream& in) = 0;
     virtual ostream& print(ostream& out) const = 0;
 };
@@ -78,10 +78,10 @@ public:
 
     string extension(string word) const;
     string withoutExtension(string word) const;
-    void readImg();
-    void showImg() const;
-    void showImg(const Mat& img) const;
-    void writeImg() const;
+    void scan();
+    void show() const;
+    void show(const Mat& img) const;
+    void write() const;
     void saveShow() const;
     void applyAll();
 
@@ -167,7 +167,7 @@ string Image::withoutExtension(string word) const {
     return word.substr(0,word.find('.'));
 }
 
-void Image::readImg() {
+void Image::scan() {
     string image_path;
     try {
         if(this->absolute == false)
@@ -183,13 +183,13 @@ void Image::readImg() {
         cv::resize(img,img,temp.size());
         temp.copyTo(img);
     }
-    catch(...) {cout<<"~ INVALID PATH\n"; /*return Mat::zeros(540,540,CV_8UC3);*/}
+    catch(...) {cout<<"~ INVALID PATH\n";}
     // CV_8UC3 = 8 bit unsigned integer with 3 channels (RGB)
 }
 
-void Image::showImg() const {
+void Image::show() const {
     try {
-//        Mat img = this->readImg();
+//        Mat img = this->scan();
         cv::namedWindow("Image",cv::WINDOW_NORMAL);
 //        using this function makes the window not have a title bar
 //        cv::setWindowProperty("Image",cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
@@ -209,14 +209,14 @@ void Image::showImg() const {
     catch (...) {cout<<"~ OUTPUT FAILED\n";}
 }
 
-void Image::showImg(const Mat& image) const {
+void Image::show(const Mat& img) const {
     try {
         cv::namedWindow("Image",cv::WINDOW_NORMAL);
 //        using this function makes the window not have a title bar
 //        cv::setWindowProperty("Image",cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
-        double aspect_ratio = static_cast<double>(image.cols)/image.rows;
+        double aspect_ratio = static_cast<double>(img.cols) / img.rows;
         cv::resizeWindow("Image",static_cast<int>(540*aspect_ratio),540);
-        imshow("Image",image);
+        imshow("Image", img);
 
 //        Wait for a keystroke in the window
         int k = waitKey(0);
@@ -230,10 +230,10 @@ void Image::showImg(const Mat& image) const {
     catch (...) {cout<<"~ OUTPUT FAILED\n";}
 }
 
-void Image::writeImg() const {
+void Image::write() const {
     try {
         // basically does nothing because there is nothing applied to that image
-//        Mat img = this->readImg();
+//        Mat img = this->scan();
         string full_path = this->path + this->name;
         cv::imwrite(full_path,img);
     }
@@ -245,12 +245,12 @@ void Image::saveShow() const {
     int temp;
     cin>>temp;
     cin.get();
-    if(temp == 1) this->showImg();
+    if(temp == 1) this->show();
 
     cout<<"Save image (yes:1 no:0)?\n";
     cin>>temp;
     cin.get();
-    if(temp == 1) this->writeImg();
+    if(temp == 1) this->write();
 }
 
 void Image::applyAll() {
@@ -280,10 +280,10 @@ public:
     istream& read(istream& in);
     ostream& print(ostream& out) const;
 
-    void blurImg();
-    void bwImg();
-    void cartoonImg();
-    void writeImg() const;
+    void blur();
+    void bw();
+    void cartoon_effect();
+    void write() const;
     void applyAll();
 
     void setBlurAmount(int blurAmount);
@@ -298,7 +298,7 @@ Effect::Effect(string name, string path, bool absolute, bool effect, int blurAmo
     this->blurAmount = blurAmount;
     this->blackWhite = blackWhite;
     this->cartoon = cartoon;
-    this->readImg();
+    this->scan();
 }
 
 Effect::Effect(const Effect &obj):Image(obj) {
@@ -306,7 +306,7 @@ Effect::Effect(const Effect &obj):Image(obj) {
     this->blurAmount = obj.blurAmount;
     this->blackWhite = obj.blackWhite;
     this->cartoon = obj.cartoon;
-    this->readImg();
+    this->scan();
 }
 
 Effect& Effect::operator=(const Effect &obj) {
@@ -317,7 +317,7 @@ Effect& Effect::operator=(const Effect &obj) {
         this->blurAmount = obj.blurAmount;
         this->blackWhite = obj.blackWhite;
         this->cartoon = obj.cartoon;
-        this->readImg();
+        this->scan();
     }
     return *this;
 }
@@ -339,7 +339,7 @@ istream& Effect::read(istream &in) {
     in>>this->blackWhite;
     cout<<"Do you want to apply Cartoon effect to the image? (yes:1 no:0)?\n";
     in>>this->cartoon;
-    this->readImg();
+    this->scan();
 
     return in;
 }
@@ -362,7 +362,7 @@ Effect::~Effect() {
     this->blurAmount = 0;
 }
 
-void Effect::writeImg() const {
+void Effect::write() const {
     try {
         string full_path = "../Images with Effects/" + this->withoutExtension(this->name) + "_withEffects" + this->extension(this->name);
         cv::imwrite(full_path,this->img);
@@ -370,7 +370,7 @@ void Effect::writeImg() const {
     catch (...) {cout<<"~ WRITING IMAGE FAILED\n";}
 }
 
-void Effect::blurImg() {
+void Effect::blur() {
     if(this->blurAmount > 0)
     {
         try {
@@ -386,7 +386,7 @@ void Effect::blurImg() {
     }
 }
 
-void Effect::bwImg() {
+void Effect::bw() {
     if(this->blackWhite == true)
     {
         try {
@@ -397,7 +397,7 @@ void Effect::bwImg() {
     }
 }
 
-void Effect::cartoonImg() {
+void Effect::cartoon_effect() {
     if(this->cartoon == true)
     {
         try {
@@ -423,9 +423,9 @@ void Effect::cartoonImg() {
 }
 
 void Effect::applyAll() {
-    this->blurImg();
-    this->bwImg();
-    this->cartoonImg();
+    this->blur();
+    this->bw();
+    this->cartoon_effect();
 }
 
 void Effect::setBlurAmount(int blurAmount) {
@@ -456,10 +456,10 @@ public:
     istream& read(istream& in);
     ostream& print(ostream& out) const;
 
-    void brightnessImg();
-    void contrastImg();
-    void hueImg();
-    void writeImg() const;
+    void brightness_adjustment();
+    void contrast_adjustment();
+    void hue_adjustment();
+    void write() const;
     void applyAll();
 
     void setBrightness(double brightness);
@@ -475,7 +475,7 @@ Adjustment::Adjustment(string name, string path,bool absolute, bool adjustment,
     this->brightness = brightness;
     this->contrast = contrast;
     this->hue = hue;
-    this->readImg();
+    this->scan();
 }
 
 Adjustment::Adjustment(const Adjustment &obj): Image(obj) {
@@ -483,7 +483,7 @@ Adjustment::Adjustment(const Adjustment &obj): Image(obj) {
     this->brightness = obj.brightness;
     this->contrast = obj.contrast;
     this->hue = obj.hue;
-    this->readImg();
+    this->scan();
 }
 
 Adjustment& Adjustment::operator=(const Adjustment &obj) {
@@ -494,7 +494,7 @@ Adjustment& Adjustment::operator=(const Adjustment &obj) {
         this->brightness = obj.brightness;
         this->contrast = obj.contrast;
         this->hue = obj.hue;
-        this->readImg();
+        this->scan();
     }
     return *this;
 }
@@ -513,7 +513,7 @@ istream& Adjustment::read(istream &in) {
     cout<<"Enter hue [0,180]: \n";
     in>>this->hue;
     in.get();
-    this->readImg();
+    this->scan();
 
     return in;
 }
@@ -536,7 +536,7 @@ Adjustment::~Adjustment() {
     this->adjustment = false;
 }
 
-void Adjustment::writeImg() const {
+void Adjustment::write() const {
     try {
         string full_path = "../Images with Adjustments/" + this->withoutExtension(this->name) + "_withAdjustments" + this->extension(this->name);
         cv::imwrite(full_path,this->img);
@@ -544,7 +544,7 @@ void Adjustment::writeImg() const {
     catch (...) {cout<<"~ WRITING IMAGE FAILED\n";}
 }
 
-void Adjustment::brightnessImg() {
+void Adjustment::brightness_adjustment() {
     if(this->brightness != 0 && this->brightness >= -100 && this->brightness <= 100)
     {
         try {
@@ -557,7 +557,7 @@ void Adjustment::brightnessImg() {
     }
 }
 
-void Adjustment::contrastImg() {
+void Adjustment::contrast_adjustment() {
     if(this->contrast >= 0 && this->contrast <= 10)
     {
         try {
@@ -570,7 +570,7 @@ void Adjustment::contrastImg() {
     }
 }
 
-void Adjustment::hueImg() {
+void Adjustment::hue_adjustment() {
     if(this->hue != 0 && this->hue >= -100 && this->hue <= 100)
     {
         try {
@@ -597,9 +597,9 @@ void Adjustment::hueImg() {
 }
 
 void Adjustment::applyAll() {
-    this->brightnessImg();
-    this->contrastImg();
-    this->hueImg();
+    this->brightness_adjustment();
+    this->contrast_adjustment();
+    this->hue_adjustment();
 }
 
 void Adjustment::setBrightness(double brightness) {
@@ -613,7 +613,6 @@ void Adjustment::setContrast(double contrast) {
 void Adjustment::setHue(int hue) {
     this->hue = hue;
 }
-// TODO set bool effect and adjustment when changing one of them
 
 class Edited: public Effect, public Adjustment {
 private:
@@ -630,7 +629,7 @@ public:
     istream& read(istream& in);
     ostream& print(ostream& out) const;
 
-    void writeImg() const;
+    void write() const;
     void applyAll();
 };
 
@@ -640,13 +639,13 @@ Edited::Edited(string name, string path, bool absolute, bool effect, int blurAmo
                                                                                                         Adjustment(name,path,absolute,adjustment,brightness,contrast,hue) {
     this->edited = edited;
     this->date = date;
-    this->readImg();
+    this->scan();
 }
 
 Edited::Edited(const Edited &obj): Image(obj), Effect(obj), Adjustment(obj) {
     this->edited = obj.edited;
     this->date = obj.date;
-    this->readImg();
+    this->scan();
 }
 
 Edited& Edited::operator=(const Edited &obj) {
@@ -656,7 +655,7 @@ Edited& Edited::operator=(const Edited &obj) {
         Adjustment::operator=(obj);
         this->edited = obj.edited;
         this->date = obj.date;
-        this->readImg();
+        this->scan();
     }
     return *this;
 }
@@ -688,7 +687,7 @@ istream& Edited::read(istream &in) {
     cout<<"Enter date of edited image: \n";
     std::getline(in,this->date);
 
-    this->readImg();
+    this->scan();
     return in;
 }
 
@@ -709,7 +708,7 @@ ostream& Edited::print(ostream &out) const {
     return out;
 }
 
-void Edited::writeImg() const {
+void Edited::write() const {
     try {
         string full_path = "../Edited Images/" + this->withoutExtension(this->name) + "_Edited" + this->extension(this->name);
         cv::imwrite(full_path,this->img);
@@ -718,13 +717,13 @@ void Edited::writeImg() const {
 }
 
 void Edited::applyAll() {
-    this->brightnessImg();
-    this->contrastImg();
-    this->hueImg();
+    this->brightness_adjustment();
+    this->contrast_adjustment();
+    this->hue_adjustment();
 
-    this->blurImg();
-    this->bwImg();
-    this->cartoonImg();
+    this->blur();
+    this->bw();
+    this->cartoon_effect();
 }
 
 class Software {
@@ -840,7 +839,7 @@ void Menu::displayEdit() {
     cout<<"1. Effects\n";
     cout<<"2. Adjustments\n";
     cout<<"3. Apply all changes\n";
-    cout<<"4. Reset image\n";
+    cout<<"4. Reset\n";
     cout<<"0. Go back\n";
 }
 
@@ -880,7 +879,7 @@ void Menu::editEngine(int index) {
             case 4:
             {
                 system("CLS");
-                this->files[index]->getImage()->readImg();
+                this->files[index]->getImage()->scan();
                 cout<<"~ IMAGE RESET SUCCESSFULLY\n";
                 this->displayEdit();
                 break;
@@ -1092,14 +1091,14 @@ void Menu::displayEngine(int index) {
             case 2:
             {
                 system("CLS");
-                this->files[index]->getImage()->showImg();
+                this->files[index]->getImage()->show();
                 this->displayOptions();
                 break;
             }
             case 3:
             {
                 system("CLS");
-                this->files[index]->getImage()->writeImg();
+                this->files[index]->getImage()->write();
                 cout<<"~ IMAGE WAS SAVED SUCCESSFULLY\n";
                 this->displayOptions();
                 break;
@@ -1121,10 +1120,10 @@ void Menu::showMenu() const {
     for(int i=0;i<10;i++) cout<<"-";
     cout<<endl;
 
-    cout<<"1. Create new image\n"; // create a new object with effects adjs or all
-    cout<<"2. Edit image\n"; // Edit an effect/ Adjustment/ or all
-    cout<<"3. Delete image\n";
-    cout<<"4. Display image\n"; // Info/Image on screen/save to location
+    cout<<"1. Create\n"; // create a new object with effects adjs or all
+    cout<<"2. Edit\n"; // Edit an effect/ Adjustment/ or all
+    cout<<"3. Delete\n";
+    cout<<"4. Display\n"; // Info/Image on screen/save to location
     cout<<"0. Exit\n";
 }
 
@@ -1133,7 +1132,6 @@ void Menu::engine() {
 
     while(true)
     {
-//        system("CLS");
         int option;
         cout<<"Enter option: \n";
         cin>>option;
@@ -1150,7 +1148,6 @@ void Menu::engine() {
                 cin>>*s;
                 if(s->isGoBack() == false) this->files.push_back(s);
                 else delete s;
-//                system("CLS");
                 this->showMenu();
                 break;
             }
@@ -1172,7 +1169,6 @@ void Menu::engine() {
                     else cout<<"~ INVALID INDEX\n";
                 }
                 else cout<<"~ NO IMAGES\n";
-//                system("CLS");
                 this->showMenu();
                 break;
             }
@@ -1216,7 +1212,6 @@ void Menu::engine() {
                     else cout<<"~ INVALID INDEX\n";
                 }
                 else cout<<"~ NO IMAGES\n";
-//                system("CLS");
                 this->showMenu();
                 break;
             }
@@ -1228,70 +1223,19 @@ void Menu::engine() {
     }
 }
 
+class Video {
+private:
+
+public:
+};
+
 int main()
 {
-//    initOpenCV();
-
-//    IMAGE TESTS
-    /*Image i;
-    cout<<i<<endl;
-    cin>>i;
-    cout<<i<<endl;
-    Image i2(i);
-    cout<<i2<<endl;
-    Image i3;
-    i3 = i2;
-    cout<<i3<<endl;*/
-
-//    EFFECT TESTS
-    /*
-    Effect e;
-    cout<<e<<endl;
-    cin>>e;
-    cout<<e<<endl;
-
-    Effect e;
-    cin>>e;
-    e.applyAll();
-    e.saveShow();
-    e.blurImg();
-    e.bwImg();
-     */
-
-//    ADJUSTMENT TESTS
-    /*Adjustment a;
-    cout<<a<<endl;
-    cin>>a;
-    cout<<a<<endl;
-    Adjustment a2;
-    a2 = a;
-    cout<<a2<<endl;
-
-    Adjustment a;
-    cin>>a;
-    a.brightnessImg();
-    a.showImg();
-    a.readImg();
-
-    a.contrastImg();
-    a.showImg();
-    a.readImg();
-
-    a.hueImg();
-    a.showImg();*/
-
     Menu m;
 
     return 0;
 }
 
-/*
-- virtual la toti destructorii
-- la typeinfo si typeid nevoie de destructor virtual, ptc e nevoie de o metoda virtuala
-- la ultima clasa din mostenirea din diamant daca nu trecem toti constructorii: Baza, Stanga, Dreapta, si nu trecem Baza atunci se cheama cel default si numele va avea valoarea din constructorul de la baza default.
-- la downcasting, daca dynamic_cast intoarce NULL se poate apela o metoda care nu acceseaza atribute.
-
-- ORDINE: static_cast, mostenire virtuala, dynamic_cast
- */
-
-// TODO see system("CLS") - how to improve, because it doesnt always clear screen when switching menus
+// TODO check input type
+// 1000.0 for division to work cuz fps is double
+// TODO cv::waitkey(1000.0/FPS == 27)
