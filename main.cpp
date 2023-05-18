@@ -1251,7 +1251,6 @@ public:
     void scan();
     void write() const;
     void show() const;
-//  here throw error, because there is nothing to do
     void applyAll();
     void blur();
     void bw();
@@ -1268,6 +1267,39 @@ public:
     void setContrast(double contrast);
     void setHue(int hue);
 };
+
+void Video::blur() {
+    if(blurAmount > 0)
+        try {
+            if(blurAmount % 2 == 0) blurAmount += 1;
+            // parallelization of for loop to be faster
+            // [&] = captures all variables used within lambda body and access them by reference
+            std::cout<<"~ LOADING [          ]";
+            int fraction = ceil(sequence.size()/10);
+            // atomic variable so one a thread cant read and another write in it at the same time
+            std::atomic<int> counter = 0;
+            // common variable across threads (like static but for threads)
+            std::mutex printMutex;
+            cv::parallel_for_(cv::Range(0, sequence.size()), [&](const cv::Range& range) {
+                for (int i = range.start; i < range.end; i++) {
+                    if(i%fraction == 0) {
+                        // locks the variable until it goes out of scope
+                        std::lock_guard<std::mutex> lock(printMutex);
+                        counter++;
+                        system("CLS");
+                        std::cout<<"~ LOADING [";
+                        for(int j=1;j<=counter;j++) std::cout<<(char)219;
+                        for(int j=10-counter;j>=1;j--) std::cout<<" ";
+                        std::cout<<"]";
+                    }
+
+                    cv::GaussianBlur(sequence[i], sequence[i], cv::Size(blurAmount, blurAmount), 0);
+                }
+            });
+            std::cout<<"\n~ FINISHED\n";
+        }
+        catch (...) {cout<<"~ APPLYING EFFECT FAILED\n";}
+}
 
 int Video::counter = 0;
 
@@ -1452,11 +1484,17 @@ int main()
     Video v3;
     v3 = v2;
     cout<<v3<<endl;*/
-    Video v;
+    Video v("test.mp4",0,21);
     v.scan();
+    v.blur();
     v.show();
     v.write();
     return 0;
 }
-
+// TODO singleton menu with import/export data
+// TODO template class
+// TODO 2 template functions
+// TODO 6 throws (3 unique)
 // TODO check input type
+// TODO Set for images
+// TODO Map for videos
