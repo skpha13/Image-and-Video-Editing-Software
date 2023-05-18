@@ -1237,8 +1237,8 @@ private:
     cv::VideoCapture capture;
     std::vector<Mat> sequence;
 public:
-    Video(const string &name = "", double fps = 0.0, int blurAmount = 0, int hue = 0, bool blackWhite = false,
-          bool cartoon = false, double brightness = 0, double contrast = 1);
+    Video(const string &name = "", double fps = 0.0, int blurAmount = 0, bool blackWhite = false,
+          bool cartoon = false, double brightness = 0, double contrast = 1, int hue = 0);
     Video(const Video& obj);
     ~Video();
 
@@ -1282,7 +1282,7 @@ void Video::blur() {
             std::mutex printMutex;
             cv::parallel_for_(cv::Range(0, sequence.size()), [&](const cv::Range& range) {
                 for (int i = range.start; i < range.end; i++) {
-                    if(i%fraction == 0) {
+                    if(i%fraction == 0 && i!=0) {
                         // locks the variable until it goes out of scope
                         std::lock_guard<std::mutex> lock(printMutex);
                         counter++;
@@ -1301,10 +1301,100 @@ void Video::blur() {
         catch (...) {cout<<"~ APPLYING EFFECT FAILED\n";}
 }
 
+void Video::bw() {
+    if(blackWhite == true)
+        try {
+            std::cout<<"~ LOADING [          ]";
+            int fraction = ceil(sequence.size()/10);
+            int counter = 0;
+            // no parallelization here because it's a pretty fast effect
+            for (int i = 0; i < sequence.size(); i++) {
+                if(i%fraction == 0 && i!=0) {
+                    counter++;
+                    system("CLS");
+                    std::cout<<"~ LOADING [";
+                    for(int j=1;j<=counter;j++) std::cout<<(char)219;
+                    for(int j=10-counter;j>=1;j--) std::cout<<" ";
+                    std::cout<<"]";
+                }
+                cv::cvtColor(sequence[i],sequence[i],cv::COLOR_BGR2GRAY);
+            }
+            std::cout<<"\n~ FINISHED\n";
+        }
+        catch (...) {cout<<"~ APPLYING EFFECT FAILED\n";}
+}
+
+void Video::cartoon_effect() {
+    if(cartoon == true)
+        try {
+            Mat gray,tresh,edges;
+            std::cout<<"~ LOADING [          ]";
+            int fraction = ceil(sequence.size()/10);
+            int counter = 0;
+            for (int i = 0; i < sequence.size(); i++) {
+                if(i%fraction == 0 && i!=0) {
+                    counter++;
+                    system("CLS");
+                    std::cout<<"~ LOADING [";
+                    for(int j=1;j<=counter;j++) std::cout<<(char)219;
+                    for(int j=10-counter;j>=1;j--) std::cout<<" ";
+                    std::cout<<"]";
+                }
+
+                // to check if the image is already gray
+                if(sequence[i].channels() != 1) cv::cvtColor(sequence[i],gray,cv::COLOR_BGR2GRAY);
+                else sequence[i].copyTo(gray);
+
+                // blur image to get a better mask for outlines
+                cv::medianBlur(gray,gray,7);
+                // create outline using a treshold
+                cv::adaptiveThreshold(gray,tresh,255,cv::ADAPTIVE_THRESH_MEAN_C,cv::THRESH_BINARY,21,7);
+                // blur initial image with a safer method
+                cv::bilateralFilter(sequence[i],edges,21,250,250);
+                // combine initial blurred image with the outlines
+                cv::bitwise_and(edges,edges,sequence[i],tresh);
+            }
+            std::cout<<"\n~ FINISHED\n";
+        }
+        catch (...) {cout<<"~ APPLYING EFFECT FAILED\n";}
+}
+
+void Video::brightness_adjustment() {
+    if(brightness != 0) {
+        try {
+            if(brightness < -100 || brightness > 100) throw brightness;
+            try {
+                std::cout<<"~ LOADING [          ]";
+                int fraction = ceil(sequence.size()/10);
+                int counter = 0;
+                // no parallelization here because it's a pretty fast adjustment
+                for (int i = 0; i < sequence.size(); i++) {
+                    if(i%fraction == 0 && i!=0) {
+                        counter++;
+                        system("CLS");
+                        std::cout<<"~ LOADING [";
+                        for(int j=1;j<=counter;j++) std::cout<<(char)219;
+                        for(int j=10-counter;j>=1;j--) std::cout<<" ";
+                        std::cout<<"]";
+                    }
+                    // rtype == -1 means same type as source image
+                    // alpha = contrast, beta = brightness
+                    sequence[i].convertTo(sequence[i],-1,1,brightness);
+                }
+                std::cout<<"\n~ FINISHED\n";
+            }
+            catch (...) {cout<<"~ APPLYING ADJUSTMENT FAILED\n";}
+        }
+        catch (double bright) {
+            std::cout<<"~ Brightness value: "<<bright<<" isn't in this range: [-100,100]\n";
+        }
+    }
+}
+
 int Video::counter = 0;
 
-Video::Video(const string &name, double fps, int blurAmount, int hue, bool blackWhite,
-             bool cartoon, double brightness, double contrast):id(counter++) {
+Video::Video(const string &name, double fps, int blurAmount, bool blackWhite,
+             bool cartoon, double brightness, double contrast, int hue):id(counter++) {
     if(name.empty()) {this->name = "video" + id; this->name += ".mp4";}
     else this->name = name;
     this->fps = fps;
@@ -1484,9 +1574,9 @@ int main()
     Video v3;
     v3 = v2;
     cout<<v3<<endl;*/
-    Video v("test.mp4",0,21);
+    Video v("test.mp4",0,0,0,0,50);
     v.scan();
-    v.blur();
+    v.brightness_adjustment();
     v.show();
     v.write();
     return 0;
