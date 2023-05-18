@@ -5,6 +5,8 @@
 #include <opencv2/core/utils/logger.hpp>
 #include <iostream>
 #include <vector>
+#include <chrono>
+#include <thread>
 
 using cv::Mat;
 using cv::samples::findFile;
@@ -1225,17 +1227,236 @@ void Menu::engine() {
 
 class Video {
 private:
-
+    static int counter;
+    const int id;
+    string name;
+    double fps;
+    int blurAmount, hue;
+    bool blackWhite, cartoon;
+    double brightness, contrast;
+    cv::VideoCapture capture;
+    std::vector<Mat> sequence;
 public:
+    Video(const string &name = "", double fps = 0.0, int blurAmount = 0, int hue = 0, bool blackWhite = false,
+          bool cartoon = false, double brightness = 0, double contrast = 1);
+    Video(const Video& obj);
+    ~Video();
+
+    Video &operator=(const Video& obj);
+
+    friend istream& operator>>(istream& in, Video& obj);
+    friend ostream& operator<<(ostream& out,const Video& obj);
+
+//    methods
+    void scan();
+    void write() const;
+    void show() const;
+//  here throw error, because there is nothing to do
+    void applyAll();
+    void blur();
+    void bw();
+    void cartoon_effect();
+    void brightness_adjustment();
+    void contrast_adjustment();
+    void hue_adjustment();
+
+//    setters
+    void setBlurAmount(int blurAmount);
+    void setBlackWhite(bool blackWhite);
+    void setCartoon(bool cartoon);
+    void setBrightness(double brightness);
+    void setContrast(double contrast);
+    void setHue(int hue);
 };
+
+int Video::counter = 0;
+
+Video::Video(const string &name, double fps, int blurAmount, int hue, bool blackWhite,
+             bool cartoon, double brightness, double contrast):id(counter++) {
+    if(name.empty()) {this->name = "video" + id; this->name += ".mp4";}
+    else this->name = name;
+    this->fps = fps;
+    this->blurAmount = blurAmount;
+    this->hue = hue;
+    this->blackWhite = blackWhite;
+    this->cartoon = cartoon;
+    this->brightness = brightness;
+    this->contrast = contrast;
+//    to open the laptop camera
+    this->capture.open(0);
+}
+
+Video::Video(const Video &obj):id(counter++) {
+    if(obj.name.empty()) {this->name = "video" + id; this->name += ".mp4";}
+    else this->name = obj.name;
+    this->fps = obj.fps;
+    this->blurAmount = obj.blurAmount;
+    this->hue = obj.hue;
+    this->blackWhite = obj.blackWhite;
+    this->cartoon = obj.cartoon;
+    this->brightness = obj.brightness;
+    this->contrast = obj.contrast;
+}
+
+Video::~Video() {
+    counter = 0;
+    if(!name.empty()) name.clear();
+    fps = 0.0;
+    blurAmount = 0;
+    hue = 0;
+    blackWhite = false;
+    cartoon = false;
+    brightness = 0;
+    contrast = 1;
+    capture.release();
+    if(!sequence.empty()) sequence.clear();
+}
+
+Video &Video::operator=(const Video &obj) {
+    if(this != &obj) {
+        if(obj.name.empty()) {this->name = "video" + id; this->name += ".mp4";}
+        else this->name = obj.name;
+        this->fps = obj.fps;
+        this->blurAmount = obj.blurAmount;
+        this->hue = obj.hue;
+        this->blackWhite = obj.blackWhite;
+        this->cartoon = obj.cartoon;
+        this->brightness = obj.brightness;
+        this->contrast = obj.contrast;
+    }
+    return *this;
+}
+
+istream &operator>>(istream& in, Video& obj) {
+    if(!obj.name.empty()) obj.name.clear();
+    cout<<"Enter name: \n";
+    in>>obj.name;
+
+    cout<<"Do you want to blur the video? (yes:1 no:0)?\n";
+    int temp;
+    in>>temp;
+    in.get();
+    if(temp == 1)
+    {
+        cout<<"Enter blur amount: \n";
+        in>>obj.blurAmount;
+    }
+    cout<<"Do you want to apply Black and White effect? (yes:1 no:0)?\n";
+    in>>obj.blackWhite;
+    cout<<"Do you want to apply Cartoon effect? (yes:1 no:0)?\n";
+    in>>obj.cartoon;
+
+    in.get();
+    cout<<"Enter brightness [-100,100]: \n";
+    in>>obj.brightness;
+    in.get();
+    cout<<"Enter contrast [0,10]: \n\t1 = nothing changes\n\t[0,1) = lower contrast\n\t(1,10] = higher contrast\n";
+    in>>obj.contrast;
+    in.get();
+    cout<<"Enter hue [0,180]: \n";
+    in>>obj.hue;
+    in.get();
+
+    return in;
+}
+
+ostream &operator<<(ostream& out, const Video& obj) {
+    out<<obj.name<<endl;
+
+    out<<"Blur amount: "<<obj.blurAmount<<endl;
+    if(obj.blackWhite == true) out<<"Has Black and White effect applied\n";
+    else out<<"Doesn't have Black and White effect applied\n";
+    if(obj.cartoon) out<<"Has Cartoon effect applied\n";
+    else out<<"Doesn't have Cartoon effect applied\n";
+
+    out<<"Brightness value: "<<obj.brightness<<endl;
+    out<<"Contrast value: "<<obj.contrast<<endl;
+    out<<"Hue value: "<<obj.hue<<endl;
+    return out;
+}
+
+void Video::scan() {
+    std::chrono::high_resolution_clock::time_point wasted_end;
+    std::chrono::high_resolution_clock::time_point wasted_start;
+    this->capture.open(0);
+    // takes 35ms for camera to start which can be seen at low length videos
+    // thats why i took in account the wasted time for it
+    try {
+        if(!capture.isOpened()) throw "~ Failed to open camera";
+        cv::Mat frame;
+        bool started = false;
+        auto start = std::chrono::high_resolution_clock::now();
+        wasted_start = std::chrono::high_resolution_clock::now();
+        while(capture.read(frame)) {
+            if(!started){
+                started = true;
+                wasted_end = std::chrono::high_resolution_clock::now();
+            }
+            sequence.push_back(frame.clone());
+
+            cv::imshow("Camera feed", frame);
+
+            if(waitKey(1) == 27) break;
+        }
+        // recored time it took, and how many frames there are to get the fps of the video
+        // because the camera won't share that info with opencv
+        auto end = std::chrono::high_resolution_clock::now() - (wasted_end - wasted_start);
+        this->fps = sequence.size()/(std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()/1000.0);
+        capture.release();
+        cv::destroyAllWindows();
+    }
+    catch (string err){
+        std::cout<<err<<endl;
+    }
+}
+
+void Video::write() const {
+//    fourcc = video encode MJPG is for mp4 and avi
+//    15 = fps (this is max for my webcam) , size for window, true because it has colors
+    try {
+        cv::VideoWriter writer("../Videos/" + name,cv::VideoWriter::fourcc('m','p','4','v'),fps,cv::Size(sequence[0].cols,sequence[0].rows),true);
+
+//        with address so it won't copy each frame
+        for(const auto& frame:sequence) writer.write(frame);
+
+        if(!writer.isOpened()) throw "~ Failed to open the video writer";
+
+        writer.release();
+    }
+    catch (string err) {
+        std::cout<<err<<endl;
+    }
+}
+
+void Video::show() const {
+    for(const auto& frame:sequence) {
+        // showing each image individualy
+        cv::imshow("Video", frame);
+        // waiting found time before next frame is displayed
+        // 1000.0 for division to work in double/float
+        if(cv::waitKey(1000.0/fps) == 27) break;
+    }
+    cv::destroyAllWindows();
+}
 
 int main()
 {
-    Menu m;
-
+    initOpenCV();
+//    Menu m;
+    /*
+    Video v;
+    cin>>v;
+    cout<<v<<endl;
+    Video v2(v);
+    cout<<v2<<endl;
+    Video v3;
+    v3 = v2;
+    cout<<v3<<endl;*/
+    Video v;
+    v.scan();
+    v.show();
+    v.write();
     return 0;
 }
 
 // TODO check input type
-// 1000.0 for division to work cuz fps is double
-// TODO cv::waitkey(1000.0/FPS == 27)
