@@ -9,7 +9,7 @@
 #include <thread>
 #include <set>
 #include <list>
-#include <unordered_map>
+#include <map>
 #include <typeinfo>
 
 using cv::Mat;
@@ -67,41 +67,33 @@ protected:
     Mat img;
 public:
     Image(string name = "cat.png", string path = "../Images/", bool absolute = false);
-
     Image(const Image &obj);
-
     Image &operator=(const Image &obj);
-
     // virtual to call derivative destructors
     virtual ~Image();
 
     istream &read(istream &in);
-
     ostream &print(ostream &out) const;
-
     friend istream &operator>>(istream &in, Image &obj);
-
     friend ostream &operator<<(ostream &out, const Image &obj);
 
     string extension(string word) const;
-
     string withoutExtension(string word) const;
-
     void scan();
-
     void show() const;
-
     void show(const Mat &img) const;
-
     void write() const;
-
     void saveShow() const;
-
     void applyAll();
-
     string getName() const;
-
     string getPath() const;
+
+    bool operator<(const Image& obj) {
+        return !(this->name > obj.name);
+    }
+    bool operator==(const Image& obj) {
+        return (this->path == obj.path);
+    }
 };
 
 Image::Image(string name, string path, bool absolute) {
@@ -1263,6 +1255,13 @@ public:
 
     friend ostream &operator<<(ostream &out, const Video &obj);
 
+    bool operator<(const Video& obj) {
+        return !(this->id > obj.id);
+    }
+    bool operator==(const Video& obj) {
+        return (this->id == obj.id);
+    }
+
 //    methods
     void scan();
     void write() const;
@@ -1714,12 +1713,28 @@ template<class T>
 class Project {
 private:
     string name;
+    int autosave_size;
     T *current;
-    std::set<T *> unique; // only unique files in order of resolution
-    std::list<T *> files; // to store data for fast deletes and insertions
-    std::unordered_map<std::string, std::vector<T *>> versions; // a file, contains different versions of the image
+    std::vector<T*> files;
+//    std::list<T*> files; // to store data for fast deletes and insertions
+    std::map<T*,int> versions; // contains version number of the file
 public:
-    Project() { current = new T(); name = "new project";}
+    Project() {
+        current = new T();
+        files.push_back(current);
+        name = "new project";
+        autosave_size = 3;
+        versions[current] = 0;
+    }
+    ~Project() {
+        if(!files.empty()) files.clear();
+        if(!versions.empty()) versions.clear();
+        if(versions.find(current) != versions.end()) versions.erase(current);
+    }
+    friend istream& operator>>(istream &in, Project<T>& obj);
+    friend ostream& operator<<(ostream &out, const Project<T>& obj);
+
+    // template methods
     void displayOptions();
     void displayEngine();
     void displayMenu();
@@ -1735,8 +1750,23 @@ public:
 };
 
 template<class T>
+istream& operator>>(istream& in, Project<T>& obj) {
+    std::cout<<"Enter project name: \n";
+    in>>obj.name;
+
+    return in;
+}
+
+template<class T>
+ostream& operator<<(ostream& out, const Project<T>& obj) {
+    std::cout<<"Project name: "<<obj.name<<"\n";
+
+    return out;
+}
+
+template<class T>
 void Project<T>::displayEffects() {
-    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[current]<<"\n";
     for (int i = 0; i < 10; i++) cout << "-";
     cout << " CHOOSE EFFECT ";
     for (int i = 0; i < 10; i++) cout << "-";
@@ -1750,7 +1780,7 @@ void Project<T>::displayEffects() {
 
 template<class T>
 void Project<T>::displayAdjusments() {
-    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[current]<<"\n";
     for (int i = 0; i < 10; i++) cout << "-";
     cout << " CHOOSE ADJUSTMENT ";
     for (int i = 0; i < 10; i++) cout << "-";
@@ -1866,7 +1896,7 @@ void Project<T>::adjustmentsEngine() {
 
 template<class T>
 void Project<T>::displayEdit() {
-    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[current]<<"\n";
     for (int i = 0; i < 10; i++) cout << "-";
     cout << " CHOOSE OPTION ";
     for (int i = 0; i < 10; i++) cout << "-";
@@ -1905,6 +1935,7 @@ void Project<T>::editEngine() {
             case 3: {
                 system("CLS");
                 current->applyAll();
+                versions[current]++;
                 cout << "~ CHANGES APPLIED SUCCESSFULLY\n";
                 this->displayEdit();
                 break;
@@ -1912,74 +1943,10 @@ void Project<T>::editEngine() {
             case 4: {
                 system("CLS");
                 current->scan();
+                versions[current] = 0;
                 cout << "~ IMAGE RESET SUCCESSFULLY\n";
                 this->displayEdit();
                 break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
-        }
-    }
-}
-
-template<class T>
-void Project<T>::displayMenu() {
-    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
-    std::cout<<"1. Open\n";
-    std::cout<<"2. Edit\n";
-    std::cout<<"3. Delete\n";
-    std::cout<<"4. Display\n";
-    std::cout<<"5. Save Version\n";
-    std::cout<<"6. Change Version\n";
-    std::cout<<"0. Go Back\n";
-}
-
-template<class T>
-void Project<T>::menuEngine() {
-    system("CLS");
-    this->displayMenu();
-
-    while (true) {
-        int option;
-        cout << "Enter option: \n";
-        cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                cin>>*current;
-                this->displayMenu();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                this->editEngine();
-                this->displayMenu();
-                break;
-            }
-            case 3: {
-                system("CLS");
-
-                cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
-                this->displayMenu();
-                break;
-            }
-            case 4: {
-                system("CLS");
-                this->displayEngine();
-                this->displayMenu();
-                break;
-
-            }
-            case 5: {
-
-            }
-            case 6: {
-
             }
             case 0: {
                 system("CLS");
@@ -2044,8 +2011,137 @@ void Project<T>::displayEngine() {
     }
 }
 
+template<class T>
+void Project<T>::displayMenu() {
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[current]<<"\n";
+    std::cout<<"1. Open\n";
+    std::cout<<"2. Edit\n";
+    std::cout<<"3. Delete\n";
+    std::cout<<"4. Display\n";
+    std::cout<<"5. Change file\n";
+    std::cout<<"0. Go Back\n";
+}
+
+template<class T>
+void Project<T>::menuEngine() {
+    system("CLS");
+    this->displayMenu();
+
+    while (true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                std::cout<<"Open new image (yes:1 no:0)?\n";
+                bool temp;
+                cin>>temp;
+                cin.get();
+                if(temp == true) {
+                    cin>>*current;
+                    this->displayMenu();
+                }
+                else {
+                    for(int i=0;i<files.size();i++)
+                        std::cout<<"File: "<<i<<"\n"<<*files[i]<<"\n";
+                }
+                break;
+            }
+            case 2: {
+                system("CLS");
+                this->editEngine();
+                this->displayMenu();
+                break;
+            }
+            case 3: {
+                system("CLS");
+                /*std::cout<<"Delete current file? (yes:1 no:0)?";
+                bool temp;
+                cin>>temp;
+                cin.get();
+                if(temp == true) {
+                    int index = 0;
+                    files.sort();
+                    for(auto it = files.begin(); it != files.end(); it++)
+                        std::cout<<"\tFile: "<<index++<<endl, std::cout<<*it<<endl;
+                    std::cout<<"Choose file: \n";
+                    int fileNr;
+                    cin>>fileNr;
+                    cin.get();
+                    if(fileNr >= 0 && fileNr < files.size()) {
+                        for(auto it = files.begin(); it != files.end(); it++)
+                            if (fileNr == 0) {
+                                current = *it;
+                                fileNr--;
+                                break;
+                            }
+                        files.remove(current);
+                        cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
+                    }
+                    else cout<<"~ INVALID INDEX\n";
+
+                    std::cout<<"Choose another file: \n";
+                    cin>>fileNr;
+                    cin.get();
+
+                    if(fileNr >= 0 && fileNr < files.size()) {
+                        for (const auto &it: files)
+                            if (fileNr == 0) {
+                                current = it;
+                                fileNr--;
+                                break;
+                            }
+                    }
+                    else cout<<"~ INVALID INDEX\n";
+                }*/
+                this->displayMenu();
+                break;
+            }
+            case 4: {
+                system("CLS");
+                this->displayEngine();
+                this->displayMenu();
+                break;
+
+            }
+            case 5: {
+                system("CLS");
+
+                /*int index = 0;
+                files.sort();
+                for(const auto& it:files)
+                    std::cout<<"\tFile: "<<index++<<endl, std::cout<<*it<<endl;
+
+                std::cout<<"Choose file: \n";
+                int fileNr;
+                cin>>fileNr;
+                cin.get();
+                if(fileNr >= 0 && fileNr < files.size())
+                    for(const auto& it:files)
+                        if(fileNr == 0 ) {
+                            current = it;
+                            fileNr--;
+                            break;
+                        }
+                        else cout<<"~ INVALID INDEX\n";
+*/
+                this->displayMenu();
+                break;
+            }
+            case 0: {
+                system("CLS");
+                return;
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
+}
+
 int main() {
-//    initOpenCV();
+    initOpenCV();
 //    Menu m;
     /*
     Video v;
@@ -2061,13 +2157,12 @@ int main() {
     v.contrast_adjustment();
     v.show();
     v.write();*/
-    Project<Video> a;
+    Project<Software> a;
     a.menuEngine();
 //    a.displayEngine();
     return 0;
 }
 // TODO singleton menu with import/export data
-// TODO template class
-// TODO 2 template functions
 // TODO 6 throws (3 unique)
 // TODO check input type
+// TODO containers
