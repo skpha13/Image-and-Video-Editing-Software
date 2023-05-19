@@ -1713,17 +1713,12 @@ template<class T>
 class Project {
 private:
     string name;
-    int autosave_size;
     T *current;
-    std::vector<T*> files;
-//    std::list<T*> files; // to store data for fast deletes and insertions
+    std::list<T*> files; // to store data for fast deletes and insertions
     std::map<T*,int> versions; // contains version number of the file
 public:
     Project() {
-        current = new T();
-        files.push_back(current);
         name = "new project";
-        autosave_size = 3;
         versions[current] = 0;
     }
     ~Project() {
@@ -2018,7 +2013,6 @@ void Project<T>::displayMenu() {
     std::cout<<"2. Edit\n";
     std::cout<<"3. Delete\n";
     std::cout<<"4. Display\n";
-    std::cout<<"5. Change file\n";
     std::cout<<"0. Go Back\n";
 }
 
@@ -2035,18 +2029,37 @@ void Project<T>::menuEngine() {
         switch (option) {
             case 1: {
                 system("CLS");
-                std::cout<<"Open new image (yes:1 no:0)?\n";
+                std::cout<<"Open new file (yes:1 no:0)?\n";
                 bool temp;
                 cin>>temp;
                 cin.get();
                 if(temp == true) {
-                    cin>>*current;
-                    this->displayMenu();
+                    T* tempOBJ = new T();
+                    cin>>*tempOBJ;
+                    files.push_back(tempOBJ);
+                    current = tempOBJ;
                 }
-                else {
-                    for(int i=0;i<files.size();i++)
-                        std::cout<<"File: "<<i<<"\n"<<*files[i]<<"\n";
+                else if(files.size() > 0){
+                    int index = 0;
+                    files.sort();
+                    for(auto it = files.begin(); it != files.end(); it++)
+                        std::cout<<"\tFile: "<<index++<<endl, std::cout<<**it<<endl;
+                    std::cout<<"Choose file: \n";
+                    int fileNr;
+                    cin>>fileNr;
+                    cin.get();
+                    if(fileNr >= 0 && fileNr < files.size()) {
+                        for (auto it = files.begin(); it != files.end(); it++) {
+                            if (fileNr == 0) {
+                                current = *it;
+                                break;
+                            }
+                            fileNr--;
+                        }
+                    } else cout<<"~ INVALID INDEX\n";
                 }
+                else cout<<"~ NO FILES\n";
+                this->displayMenu();
                 break;
             }
             case 2: {
@@ -2057,45 +2070,45 @@ void Project<T>::menuEngine() {
             }
             case 3: {
                 system("CLS");
-                /*std::cout<<"Delete current file? (yes:1 no:0)?";
-                bool temp;
-                cin>>temp;
-                cin.get();
-                if(temp == true) {
+                if(files.size() > 0) {
                     int index = 0;
                     files.sort();
-                    for(auto it = files.begin(); it != files.end(); it++)
-                        std::cout<<"\tFile: "<<index++<<endl, std::cout<<*it<<endl;
-                    std::cout<<"Choose file: \n";
+                    for (auto it = files.begin(); it != files.end(); it++)
+                        std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
+                    std::cout << "Choose file: \n";
                     int fileNr;
-                    cin>>fileNr;
+                    cin >> fileNr;
                     cin.get();
-                    if(fileNr >= 0 && fileNr < files.size()) {
-                        for(auto it = files.begin(); it != files.end(); it++)
+                    if (fileNr >= 0 && fileNr < files.size()) {
+                        for (auto it = files.begin(); it != files.end(); it++) {
                             if (fileNr == 0) {
                                 current = *it;
-                                fileNr--;
                                 break;
                             }
+                            fileNr--;
+                        }
                         files.remove(current);
                         cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
-                    }
-                    else cout<<"~ INVALID INDEX\n";
+                    } else cout << "~ INVALID INDEX\n";
 
-                    std::cout<<"Choose another file: \n";
-                    cin>>fileNr;
+                    index = 0;
+                    for (auto it = files.begin(); it != files.end(); it++)
+                        std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
+
+                    std::cout << "Choose another file: \n";
+                    cin >> fileNr;
                     cin.get();
 
-                    if(fileNr >= 0 && fileNr < files.size()) {
-                        for (const auto &it: files)
+                    if (fileNr >= 0 && fileNr < files.size()) {
+                        for (auto it = files.begin(); it != files.end(); it++) {
                             if (fileNr == 0) {
-                                current = it;
-                                fileNr--;
+                                current = *it;
                                 break;
                             }
-                    }
-                    else cout<<"~ INVALID INDEX\n";
-                }*/
+                            fileNr--;
+                        }
+                    } else cout << "~ INVALID INDEX\n";
+                } else cout<<"~ NO FILES\n";
                 this->displayMenu();
                 break;
             }
@@ -2105,30 +2118,6 @@ void Project<T>::menuEngine() {
                 this->displayMenu();
                 break;
 
-            }
-            case 5: {
-                system("CLS");
-
-                /*int index = 0;
-                files.sort();
-                for(const auto& it:files)
-                    std::cout<<"\tFile: "<<index++<<endl, std::cout<<*it<<endl;
-
-                std::cout<<"Choose file: \n";
-                int fileNr;
-                cin>>fileNr;
-                cin.get();
-                if(fileNr >= 0 && fileNr < files.size())
-                    for(const auto& it:files)
-                        if(fileNr == 0 ) {
-                            current = it;
-                            fileNr--;
-                            break;
-                        }
-                        else cout<<"~ INVALID INDEX\n";
-*/
-                this->displayMenu();
-                break;
             }
             case 0: {
                 system("CLS");
@@ -2157,7 +2146,7 @@ int main() {
     v.contrast_adjustment();
     v.show();
     v.write();*/
-    Project<Software> a;
+    Project<Video> a;
     a.menuEngine();
 //    a.displayEngine();
     return 0;
