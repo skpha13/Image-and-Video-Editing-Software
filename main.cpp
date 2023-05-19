@@ -11,6 +11,7 @@
 #include <list>
 #include <map>
 #include <typeinfo>
+#include <fstream>
 
 using cv::Mat;
 using cv::samples::findFile;
@@ -92,7 +93,7 @@ public:
         return !(this->name > obj.name);
     }
     bool operator==(const Image& obj) {
-        return (this->path == obj.path);
+        return this->name == obj.name;
     }
 };
 
@@ -742,7 +743,7 @@ void Edited::applyAll() {
     this->cartoon_effect();
 }
 
-class Software {
+class Photoshop {
 private:
     Image *image;
     bool favorite, goBack;
@@ -750,9 +751,9 @@ private:
 public:
     Image *getImage() { return this->image; }
 
-    friend istream &operator>>(istream &in, Software &obj);
+    friend istream &operator>>(istream &in, Photoshop &obj);
 
-    friend ostream &operator<<(ostream &out, const Software &obj);
+    friend ostream &operator<<(ostream &out, const Photoshop &obj);
 
     bool isGoBack() const;
 
@@ -770,37 +771,41 @@ public:
     void setBrightness(double);
     void setContrast(double);
     void setHue(int);
+
+    string getType() {
+        return typeid(*image).name();
+    }
 };
 
-void Software::setBrightness(double brightness) {
+void Photoshop::setBrightness(double brightness) {
     if (typeid(*image) == typeid(Adjustment) || typeid(*image) == typeid(Edited)) {
         dynamic_cast<Adjustment&>(*image).setBrightness(brightness);
         std::cout << "~ ADJUSTMENT WAS APPLIED SUCCESSFULLY\n";
     } else std::cout << "~ OBJECT IS NOT OF TYPE ADJUSTMENT OR EDITING\n";
 }
 
-void Software::setContrast(double contrast) {
+void Photoshop::setContrast(double contrast) {
     if (typeid(*image) == typeid(Adjustment) || typeid(*image) == typeid(Edited)) {
         dynamic_cast<Adjustment&>(*image).setContrast(contrast);
         std::cout << "~ ADJUSTMENT WAS APPLIED SUCCESSFULLY\n";
     } else std::cout << "~ OBJECT IS NOT OF TYPE ADJUSTMENT OR EDITING\n";
 }
 
-void Software::setHue(int hue) {
+void Photoshop::setHue(int hue) {
     if (typeid(*image) == typeid(Adjustment) || typeid(*image) == typeid(Edited)) {
         dynamic_cast<Adjustment&>(*image).setHue(hue);
         std::cout << "~ ADJUSTMENT WAS APPLIED SUCCESSFULLY\n";
     } else std::cout << "~ OBJECT IS NOT OF TYPE ADJUSTMENT OR EDITING\n";
 }
 
-void Software::setBlurAmount(int blurAmount) {
+void Photoshop::setBlurAmount(int blurAmount) {
     if (typeid(*image) == typeid(Effect) || typeid(*image) == typeid(Edited)) {
         dynamic_cast<Effect&>(*image).setBlurAmount(blurAmount);
         std::cout << "~ EFFECT WAS APPLIED SUCCESSFULLY\n";
     } else std::cout << "~ OBJECT IS NOT OF TYPE EFFECT OR EDITING\n";
 }
 
-void Software::setBlackWhite(bool blackWhite) {
+void Photoshop::setBlackWhite(bool blackWhite) {
     if (typeid(*image) == typeid(Effect) || typeid(*image) == typeid(Edited)) {
         dynamic_cast<Effect&>(*image).setBlackWhite(blackWhite);
         std::cout<< "~ EFFECT WAS APPLIED SUCCESSFULLY\n";
@@ -808,7 +813,7 @@ void Software::setBlackWhite(bool blackWhite) {
     else std::cout << "~ OBJECT IS NOT OF TYPE EFFECT OR EDITING\n";
 }
 
-void Software::setCartoon(bool cartoon) {
+void Photoshop::setCartoon(bool cartoon) {
     if (typeid(*image) == typeid(Effect) || typeid(*image) == typeid(Edited)) {
         dynamic_cast<Effect&>(*image).setCartoon(cartoon);
         std::cout<< "~ EFFECT WAS APPLIED SUCCESSFULLY\n";
@@ -816,7 +821,7 @@ void Software::setCartoon(bool cartoon) {
     else std::cout << "~ OBJECT IS NOT OF TYPE EFFECT OR EDITING\n";
 }
 
-istream &operator>>(istream &in, Software &obj) {
+istream &operator>>(istream &in, Photoshop &obj) {
     obj.goBack = false;
 
     for (int i = 0; i < 10; i++) cout << "-";
@@ -863,8 +868,8 @@ istream &operator>>(istream &in, Software &obj) {
     return in;
 }
 
-ostream &operator<<(ostream &out, const Software &obj) {
-    out << *obj.image << endl;
+ostream &operator<<(ostream &out, const Photoshop &obj) {
+    out << *obj.image;
 
     if (obj.favorite == true) out << "Is a favorite image\n";
     else out << "Is not a favorite image\n";
@@ -872,13 +877,13 @@ ostream &operator<<(ostream &out, const Software &obj) {
     return out;
 }
 
-bool Software::isGoBack() const {
+bool Photoshop::isGoBack() const {
     return this->goBack;
 }
 
 class Menu {
 private:
-    std::vector<Software *> files;
+    std::vector<Photoshop *> files;
 public:
     Menu() {
         initOpenCV();
@@ -1164,7 +1169,7 @@ void Menu::engine() {
             }
             case 1: {
                 system("CLS");
-                Software *s = new Software();
+                Photoshop *s = new Photoshop();
                 cin >> *s;
                 if (s->isGoBack() == false) this->files.push_back(s);
                 else delete s;
@@ -1255,10 +1260,10 @@ public:
 
     friend ostream &operator<<(ostream &out, const Video &obj);
 
-    bool operator<(const Video& obj) {
-        return !(this->id > obj.id);
+    bool operator<(const Video& obj) const {
+        return this->id <= obj.id;
     }
-    bool operator==(const Video& obj) {
+    bool operator==(const Video& obj) const {
         return (this->id == obj.id);
     }
 
@@ -1281,6 +1286,8 @@ public:
     void setBrightness(double brightness);
     void setContrast(double contrast);
     void setHue(int hue);
+
+    string getType(){return typeid(*this).name();}
 };
 
 int Video::counter = 0;
@@ -1288,7 +1295,7 @@ int Video::counter = 0;
 Video::Video(const string &name, double fps, int blurAmount, bool blackWhite,
              bool cartoon, double brightness, double contrast, int hue) : id(counter++) {
     if (name.empty()) {
-        this->name = "video" + id;
+        this->name = "video" + std::to_string(id);
         this->name += ".mp4";
     }
     else this->name = name;
@@ -1305,7 +1312,7 @@ Video::Video(const string &name, double fps, int blurAmount, bool blackWhite,
 
 Video::Video(const Video &obj) : id(counter++) {
     if (obj.name.empty()) {
-        this->name = "video" + id;
+        this->name = "video" + std::to_string(id);
         this->name += ".mp4";
     }
     else this->name = obj.name;
@@ -1335,7 +1342,7 @@ Video::~Video() {
 Video &Video::operator=(const Video &obj) {
     if (this != &obj) {
         if (obj.name.empty()) {
-            this->name = "video" + id;
+            this->name = "video" + std::to_string(id);
             this->name += ".mp4";
         }
         else this->name = obj.name;
@@ -1729,6 +1736,10 @@ public:
     friend istream& operator>>(istream &in, Project<T>& obj);
     friend ostream& operator<<(ostream &out, const Project<T>& obj);
 
+    bool operator<(const Project& obj) {
+        return this-name < obj.name;
+    }
+
     // template methods
     void displayOptions();
     void displayEngine();
@@ -1742,6 +1753,9 @@ public:
     void displayEffects();
     void adjustmentsEngine();
     void displayAdjusments();
+
+    void write(string);
+    void read(string);
 };
 
 template<class T>
@@ -2119,6 +2133,7 @@ void Project<T>::menuEngine() {
                 break;
 
             }
+            case 5: this->write("test.out");
             case 0: {
                 system("CLS");
                 return;
@@ -2126,6 +2141,36 @@ void Project<T>::menuEngine() {
             default:
                 cout << "~ INVALID OPTION\n";
         }
+    }
+}
+
+template<class T>
+void Project<T>::write(string output) {
+    output = "../" + output;
+    std::ofstream out(output);
+
+    out<<files.size()<<endl;
+//    TODO display what type of image
+    for(auto it = files.begin(); it != files.end(); it++) {
+        out<<(*it)->getType()<<endl;
+        out<<**it<<endl;
+    }
+
+    out.close();
+}
+
+template<class T>
+void Project<T>::read(string input) {
+    input = "../" + input;
+    std::ifstream in(input);
+
+    int nrObj;
+    in>>nrObj;
+    in.get();
+
+    string temp;
+    for(int i=0;i<nrObj;i++) {
+
     }
 }
 
@@ -2146,7 +2191,7 @@ int main() {
     v.contrast_adjustment();
     v.show();
     v.write();*/
-    Project<Video> a;
+    Project<Photoshop> a;
     a.menuEngine();
 //    a.displayEngine();
     return 0;
