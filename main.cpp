@@ -1380,6 +1380,7 @@ istream &operator>>(istream &in, Video &obj) {
     in >> obj.hue;
     in.get();
 
+    obj.scan();
     return in;
 }
 
@@ -1438,8 +1439,7 @@ void Video::scan() {
         // recored time it took, and how many frames there are to get the fps of the video
         // because the camera won't share that info with opencv
         auto end = std::chrono::high_resolution_clock::now() - (wasted_end - wasted_start);
-        this->fps =
-                sequence.size() / (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0);
+        this->fps = sequence.size() / (std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0);
         capture.release();
         cv::destroyAllWindows();
     }
@@ -1602,37 +1602,36 @@ void Video::brightness_adjustment() {
 }
 
 void Video::contrast_adjustment() {
-    try {
-        if (contrast < 0 && contrast > 10) throw contrast;
+    if(contrast != 1)
         try {
-            std::cout << sequence.size() << "\n";
-            std::cout << "~ LOADING [          ]";
-            int fraction = floor(((double) sequence.size()) / 10);
-            std::cout << fraction << "\n";
-            int temp;
-            cin >> temp;
-            int counter = 0;
-            // no parallelization here because it's a pretty fast adjustment
-            for (int i = 0; i < sequence.size(); i++) {
-                if (i % fraction == 0 && i != 0) {
-                    counter++;
-                    system("CLS");
-                    std::cout << "~ LOADING [";
-                    for (int j = 1; j <= counter; j++) std::cout << (char) 219;
-                    for (int j = 10 - counter; j >= 1; j--) std::cout << " ";
-                    std::cout << "]";
+            if (contrast < 0 && contrast > 10) throw contrast;
+            try {
+                std::cout << "~ LOADING [          ]";
+                int fraction = floor(((double) sequence.size()) / 10);
+                int temp;
+                cin >> temp;
+                int counter = 0;
+                // no parallelization here because it's a pretty fast adjustment
+                for (int i = 0; i < sequence.size(); i++) {
+                    if (i % fraction == 0 && i != 0) {
+                        counter++;
+                        system("CLS");
+                        std::cout << "~ LOADING [";
+                        for (int j = 1; j <= counter; j++) std::cout << (char) 219;
+                        for (int j = 10 - counter; j >= 1; j--) std::cout << " ";
+                        std::cout << "]";
+                    }
+                    // rtype == -1 means same type as source image
+                    // alpha = contrast, beta = brightness
+                    sequence[i].convertTo(sequence[i], -1, contrast, 0);
                 }
-                // rtype == -1 means same type as source image
-                // alpha = contrast, beta = brightness
-                sequence[i].convertTo(sequence[i], -1, contrast, 0);
+                std::cout << "\n~ FINISHED\n";
             }
-            std::cout << "\n~ FINISHED\n";
+            catch (...) { cout << "~ APPLYING ADJUSTMENT FAILED\n"; }
         }
-        catch (...) { cout << "~ APPLYING ADJUSTMENT FAILED\n"; }
-    }
-    catch (double cont) {
-        std::cout << "~ The contrast value: " << cont << " falls outside the valid range of [0,10]\n";
-    }
+        catch (double cont) {
+            std::cout << "~ The contrast value: " << cont << " falls outside the valid range of [0,10]\n";
+        }
 }
 
 void Video::hue_adjustment() {
@@ -1702,13 +1701,13 @@ void Video::setHue(int hue) {
 }
 
 void Video::applyAll() {
+    this->contrast_adjustment();
+    this->brightness_adjustment();
+    this->hue_adjustment();
+
     this->blur();
     this->bw();
     this->cartoon_effect();
-
-    this->brightness_adjustment();
-    this->contrast_adjustment();
-    this->hue_adjustment();
 }
 
 template<class T>
@@ -1717,7 +1716,7 @@ private:
     string name;
     T *current;
     std::set<T *> unique; // only unique files in order of resolution
-    std::list<T *> files; // to stare data for fast deletes and insertions
+    std::list<T *> files; // to store data for fast deletes and insertions
     std::unordered_map<std::string, std::vector<T *>> versions; // a file, contains different versions of the image
 public:
     Project() { current = new T(); name = "new project";}
@@ -1729,18 +1728,267 @@ public:
     void editEngine();
     void saveVersion();
     void changeVersion();
+    void effectsEngine();
+    void displayEffects();
+    void adjustmentsEngine();
+    void displayAdjusments();
 };
 
 template<class T>
+void Project<T>::displayEffects() {
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << " CHOOSE EFFECT ";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << endl;
+
+    cout << "1. Blur\n";
+    cout << "2. Black and White\n";
+    cout << "3. Cartoon\n";
+    cout << "0. Go back\n";
+}
+
+template<class T>
+void Project<T>::displayAdjusments() {
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << " CHOOSE ADJUSTMENT ";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << endl;
+
+    cout << "1. Brightness\n";
+    cout << "2. Contrast\n";
+    cout << "3. Hue\n";
+    cout << "0. Go back\n";;
+}
+
+template<class T>
+void Project<T>::effectsEngine() {
+    system("CLS");
+    this->displayEffects();
+
+    while (true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                int temp;
+                cout << "Enter blur amount: \n";
+                cin >> temp;
+                cin.get();
+                current->setBlurAmount(temp);
+                this->displayEffects();
+                break;
+            }
+            case 2: {
+                system("CLS");
+                bool temp;
+                cout << "Do you want to apply Black and White effect to the image (yes:1 no:0)?\n";
+                cin >> temp;
+                cin.get();
+                current->setBlackWhite(temp);
+                this->displayEffects();
+                break;
+            }
+            case 3: {
+                system("CLS");
+                bool temp;
+                cout << "Do you want to apply Cartoon effect to the image (yes:1 no:0)?\n";
+                cin >> temp;
+                cin.get();
+                current->setCartoon(temp);
+                this->displayEffects();
+                break;
+            }
+            case 0: {
+                system("CLS");
+                return;
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
+}
+
+template<class T>
+void Project<T>::adjustmentsEngine() {
+    system("CLS");
+    this->displayAdjusments();
+
+    while (true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                double temp;
+                cout << "Enter Brightness [-100,100]: \n";
+                cin >> temp;
+                cin.get();
+                current->setBrightness(temp);
+                this->displayAdjusments();
+                break;
+            }
+            case 2: {
+                system("CLS");
+                double temp;
+                cout
+                        << "Enter contrast [0,10]: \n\t1 = nothing changes\n\t[0,1) = lower contrast\n\t(1,10] = higher contrast\n";
+                cin >> temp;
+                cin.get();
+                current->setContrast(temp);
+                this->displayAdjusments();
+                break;
+            }
+            case 3: {
+                system("CLS");
+                int temp;
+                cout << "Enter hue [0,180]: \n";
+                cin >> temp;
+                cin.get();
+                current->setHue(temp);
+                this->displayAdjusments();
+                break;
+            }
+            case 0: {
+                return;
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
+}
+
+template<class T>
+void Project<T>::displayEdit() {
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << " CHOOSE OPTION ";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << endl;
+
+    cout << "1. Effects\n";
+    cout << "2. Adjustments\n";
+    cout << "3. Apply all changes\n";
+    cout << "4. Reset\n";
+    cout << "0. Go back\n";
+}
+
+template<class T>
+void Project<T>::editEngine() {
+    system("CLS");
+    this->displayEdit();
+
+    while (true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                this->effectsEngine();
+                this->displayEdit();
+                break;
+            }
+            case 2: {
+                system("CLS");
+                this->adjustmentsEngine();
+                this->displayEdit();
+                break;
+            }
+            case 3: {
+                system("CLS");
+                current->applyAll();
+                cout << "~ CHANGES APPLIED SUCCESSFULLY\n";
+                this->displayEdit();
+                break;
+            }
+            case 4: {
+                system("CLS");
+                current->scan();
+                cout << "~ IMAGE RESET SUCCESSFULLY\n";
+                this->displayEdit();
+                break;
+            }
+            case 0: {
+                system("CLS");
+                return;
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
+}
+
+template<class T>
 void Project<T>::displayMenu() {
-    std::cout<<"Project: "<<name<<" Version:"<<versions[name].size()<<"\n";
-    std::cout<<"1. OPEN\n";
-    std::cout<<"2. EDIT\n";
-    std::cout<<"3. DELETE\n";
-    std::cout<<"4. DISPLAY\n";
-    std::cout<<"5. SAVE VERSION\n";
-    std::cout<<"6. CHANGE VERSION\n";
-    std::cout<<"0. GO BACK\n";
+    std::cout<<"\tProject: "<<name<<"\n\tVersion:"<<versions[name].size()<<"\n";
+    std::cout<<"1. Open\n";
+    std::cout<<"2. Edit\n";
+    std::cout<<"3. Delete\n";
+    std::cout<<"4. Display\n";
+    std::cout<<"5. Save Version\n";
+    std::cout<<"6. Change Version\n";
+    std::cout<<"0. Go Back\n";
+}
+
+template<class T>
+void Project<T>::menuEngine() {
+    system("CLS");
+    this->displayMenu();
+
+    while (true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                cin>>*current;
+                this->displayMenu();
+                break;
+            }
+            case 2: {
+                system("CLS");
+                this->editEngine();
+                this->displayMenu();
+                break;
+            }
+            case 3: {
+                system("CLS");
+
+                cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
+                this->displayMenu();
+                break;
+            }
+            case 4: {
+                system("CLS");
+                this->displayEngine();
+                this->displayMenu();
+                break;
+
+            }
+            case 5: {
+
+            }
+            case 6: {
+
+            }
+            case 0: {
+                system("CLS");
+                return;
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
 }
 
 template<class T>
@@ -1775,11 +2023,13 @@ void Project<T>::displayEngine() {
             }
             case 2: {
                 system("CLS");
+                current->show();
                 this->displayOptions();
                 break;
             }
             case 3: {
                 system("CLS");
+                current->write();
                 cout << "~ FILE WAS SAVED SUCCESSFULLY\n";
                 this->displayOptions();
                 break;
@@ -1811,8 +2061,9 @@ int main() {
     v.contrast_adjustment();
     v.show();
     v.write();*/
-    Project<Software> a;
-    a.displayEngine();
+    Project<Video> a;
+    a.menuEngine();
+//    a.displayEngine();
     return 0;
 }
 // TODO singleton menu with import/export data
