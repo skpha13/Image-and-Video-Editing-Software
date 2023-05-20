@@ -1525,6 +1525,8 @@ istream& operator>>(istream& in, Project<T>& obj) {
     std::cout<<"Enter project name: \n";
     in>>obj.name;
 
+    obj.menuEngine();
+
     return in;
 }
 
@@ -1736,9 +1738,9 @@ void Project<T>::displayOptions() {
     for (int i = 0; i < 10; i++) cout << "-";
     cout << endl;
 
-    cout << "1. INFO\n";
-    cout << "2. SHOW\n";
-    cout << "3. SAVE\n";
+    cout << "1. Info\n";
+    cout << "2. Show\n";
+    cout << "3. Save\n";
     cout << "0. Go back\n";
 }
 
@@ -1980,6 +1982,153 @@ void Project<Video>::read(string input) {
         std::cout<<"~ IMPORT SUCCESSFUL\n";
     }
     catch (MyException& e) {cout<<e.what();}
+}
+
+class Menu {
+private:
+   static Menu* singleton;
+   static int nrOfInstances;
+   Menu() {
+       initOpenCV();
+       projectType = false;
+       isSaved = false;
+       this->engine();
+   }
+   Menu(const Menu&) = delete;
+   // 0 for images 1 for videos
+   bool projectType, isSaved;
+   Project<Photoshop> projPhoto;
+   Project<Video> projVideo;
+public:
+    static Menu* getInstance() {
+        nrOfInstances++;
+        if(!singleton) singleton = new Menu();
+        return singleton;
+    }
+    ~Menu() {
+        nrOfInstances--;
+        if(!nrOfInstances && singleton) delete singleton;
+    }
+
+    void displayProject();
+    void projectEngine();
+    void displayOptions();
+    void engine();
+};
+
+Menu* Menu::singleton = 0;
+int Menu::nrOfInstances = 0;
+
+void Menu::displayProject() {
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << " PROJECT PAGE ";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << endl;
+
+    cout << "1. Create new project\n";
+    cout << "2. Open project\n";
+    cout << "3. Save project\n";
+    cout << "0. Go back\n";
+}
+// TODO implement set of Projects
+void Menu::projectEngine() {
+    system("CLS");
+    this->displayProject();
+
+    while(true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                if(projectType == 0) std::cin>>projPhoto;
+                else std::cin>>projVideo;
+                this->displayProject();
+                break;
+            }
+            case 2: {
+                system("CLS");
+                string temp;
+                std::cout<<"Enter file name: \n";
+                getline(std::cin,temp);
+                temp = "../" + temp;
+                if(projectType == 0) projPhoto.read(temp);
+                else projVideo.read(temp);
+                this->isSaved = true;
+                this->displayProject();
+                break;
+            }
+            case 3: {
+                string temp;
+                std::cout<<"Enter file name: \n";
+                getline(std::cin,temp);
+                temp = "../" + temp;
+                if(projectType == 0) projPhoto.write(temp);
+                else projVideo.write(temp);
+                this->displayProject();
+                break;
+            }
+            case 0: {
+                if(isSaved == 0) {
+                    std::cout<<"Do you want to save changes to "<<" before closing (yes:1 no:0)?\n";
+                    bool temp;
+                    std::cin>>temp;
+                    cin.get();
+                    if(temp == 1) break;
+                    else return;
+                }
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
+}
+
+void Menu::displayOptions() {
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << " EDITING SOFTARE ";
+    for (int i = 0; i < 10; i++) cout << "-";
+    cout << endl;
+
+    cout << "1. Edit images\n";
+    cout << "2. Edit videos\n";
+    cout << "0. Exit\n";
+}
+
+void Menu::engine() {
+    system("CLS");
+    this->displayOptions();
+
+    while(true) {
+        int option;
+        cout << "Enter option: \n";
+        cin >> option;
+        cin.get();
+        switch (option) {
+            case 1: {
+                system("CLS");
+                this->projectType = 0;
+                this->projectEngine();
+                this->displayOptions();
+                break;
+            }
+            case 2: {
+                system("CLS");
+                this->projectType = 1;
+                this->projectEngine();
+                this->displayOptions();
+                break;
+            }
+            case 0: {
+                system("CLS");
+                return;
+            }
+            default:
+                cout << "~ INVALID OPTION\n";
+        }
+    }
 }
 
 int main() {
