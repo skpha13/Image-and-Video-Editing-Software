@@ -52,12 +52,11 @@ void initOpenCV() {
 class Interface {
 public:
     virtual void applyAll() = 0;
-
     virtual void write() const = 0;
-
     virtual istream &read(istream &in) = 0;
-
     virtual ostream &print(ostream &out) const = 0;
+    virtual void serialize(string) const = 0;
+    virtual void deserialize(std::ifstream&) = 0;
 };
 
 class Image : public Interface {
@@ -95,7 +94,28 @@ public:
     bool operator==(const Image& obj) {
         return this->name == obj.name;
     }
+    virtual void serialize(string) const;
+    virtual void deserialize(std::ifstream&);
 };
+
+void Image::serialize(string fileName) const {
+    std::ofstream out(fileName, std::ios_base::app);
+
+    out<<name<<" "<<path<<" "<<absolute<<" ";
+
+    out.close();
+}
+
+void Image::deserialize(std::ifstream& in) {
+    string name,path;
+    bool absolute;
+    in>>name>>path>>absolute;
+    this->name = name;
+    this->path = path;
+    this->absolute = absolute;
+
+    this->scan();
+}
 
 Image::Image(string name, string path, bool absolute) {
     this->name = name;
@@ -273,34 +293,48 @@ protected:
 public:
     Effect(string name = "cat.png", string path = "../Images/", bool absolute = false, bool effect = false,
            int blurAmount = 0, bool blackWhite = false, bool cartoon = false);
-
     Effect(const Effect &obj);
-
     Effect &operator=(const Effect &obj);
 
     // override specifier ensures that the function is virtual and is overriding a virtual function from a base class
     virtual ~Effect() override;
-
     istream &read(istream &in);
-
     ostream &print(ostream &out) const;
 
     void blur();
-
     void bw();
-
     void cartoon_effect();
-
     void write() const;
-
     void applyAll();
-
     void setBlurAmount(int blurAmount);
-
     void setBlackWhite(bool blackWhite);
-
     void setCartoon(bool cartoon);
+
+    void serialize(string) const;
+    void deserialize(std::ifstream&);
 };
+
+void Effect::serialize(string fileName) const {
+    this->Image::serialize(fileName);
+    std::ofstream out(fileName, std::ios_base::app);
+
+    out<<effect<<" "<<blurAmount<<" "<<blackWhite<<" "<<cartoon<<" ";
+
+    out.close();
+}
+
+void Effect::deserialize(std::ifstream& in) {
+    this->Image::deserialize(in);
+
+    bool effect,blackWhite,cartoon;
+    int blurAmount;
+
+    in>>effect>>blurAmount>>blackWhite>>cartoon;
+    this->effect = effect;
+    this->blurAmount = blurAmount;
+    this->blackWhite = blackWhite;
+    this->cartoon = cartoon;
+}
 
 Effect::Effect(string name, string path, bool absolute, bool effect, int blurAmount, bool blackWhite, bool cartoon) :
         Image(name, path, absolute) {
@@ -454,34 +488,49 @@ protected:
 public:
     Adjustment(string name = "cat.png", string path = "../Images/", bool absolute = false, bool adjustment = false,
                double brightness = 0, double contrast = 1, int hue = 0);
-
     Adjustment(const Adjustment &obj);
-
     Adjustment &operator=(const Adjustment &obj);
 
     // override specifier ensures that the function is virtual and is overriding a virtual function from a base class
     virtual ~Adjustment() override;
-
     istream &read(istream &in);
-
     ostream &print(ostream &out) const;
 
     void brightness_adjustment();
-
     void contrast_adjustment();
-
     void hue_adjustment();
-
     void write() const;
-
     void applyAll();
-
     void setBrightness(double brightness);
-
     void setContrast(double contrast);
-
     void setHue(int hue);
+
+    void serialize(string) const;
+    void deserialize(std::ifstream&);
 };
+
+void Adjustment::serialize(string fileName) const {
+    this->Image::serialize(fileName);
+    std::ofstream out(fileName, std::ios_base::app);
+
+    out<<adjustment<<" "<<brightness<<" "<<contrast<<" "<<hue<<" ";
+
+    out.close();
+}
+
+void Adjustment::deserialize(std::ifstream& in) {
+    this->Image::deserialize(in);
+
+    bool adjustment;
+    double brightness, contrast;
+    int hue;
+
+    in>>adjustment>>brightness>>contrast>>hue;
+    this->adjustment = adjustment;
+    this->brightness = brightness;
+    this->contrast = contrast;
+    this->hue = hue;
+}
 
 Adjustment::Adjustment(string name, string path, bool absolute, bool adjustment,
                        double brightness, double contrast, int hue) :
@@ -634,21 +683,44 @@ public:
            int blurAmount = 0, bool blackWhite = false, bool cartoon = false,
            bool adjustment = false, double brightness = 0, double contrast = 1, int hue = 0, bool edited = false,
            string date = "13/06/1826");
-
     Edited(const Edited &obj);
-
     Edited &operator=(const Edited &obj);
 
     ~Edited();
-
     istream &read(istream &in);
-
     ostream &print(ostream &out) const;
 
     void write() const;
-
     void applyAll();
+    void serialize(string) const;
+    void deserialize(std::ifstream&);
 };
+
+void Edited::serialize(string fileName) const {
+    this->Effect::serialize(fileName);
+    std::ofstream out(fileName, std::ios_base::app);
+
+    out<<adjustment<<" "<<brightness<<" "<<contrast<<" "<<hue<<" "<<edited<<" "<<date;
+
+    out.close();
+}
+
+void Edited::deserialize(std::ifstream& in) {
+    this->Effect::deserialize(in);
+
+    bool adjustment,edited;
+    double brightness, contrast;
+    int hue;
+    string date;
+
+    in>>adjustment>>brightness>>contrast>>hue>>edited>>date;
+    this->adjustment = adjustment;
+    this->brightness = brightness;
+    this->contrast = contrast;
+    this->hue = hue;
+    this->edited = edited;
+    this->date = date;
+}
 
 Edited::Edited(string name, string path, bool absolute, bool effect, int blurAmount, bool blackWhite, bool cartoon,
                bool adjustment, double brightness, double contrast, int hue, bool edited, string date) : Image(name,path,absolute),
@@ -750,9 +822,8 @@ private:
 
 public:
     Image *getImage() { return this->image; }
-
+    Image*& getImageByReference() {return this->image;}
     friend istream &operator>>(istream &in, Photoshop &obj);
-
     friend ostream &operator<<(ostream &out, const Photoshop &obj);
 
     bool isGoBack() const;
@@ -775,7 +846,17 @@ public:
     string getType() {
         return typeid(*image).name();
     }
+    void serialize(string) const;
+    void deserialize(std::ifstream&);
 };
+
+void Photoshop::serialize(string fileName) const {
+    image->serialize(fileName);
+}
+
+void Photoshop::deserialize(std::ifstream& in) {
+    image->deserialize(in);
+}
 
 void Photoshop::setBrightness(double brightness) {
     if (typeid(*image) == typeid(Adjustment) || typeid(*image) == typeid(Edited)) {
@@ -881,360 +962,6 @@ bool Photoshop::isGoBack() const {
     return this->goBack;
 }
 
-class Menu {
-private:
-    std::vector<Photoshop *> files;
-public:
-    Menu() {
-        initOpenCV();
-        this->engine();
-    }
-
-    void showMenu() const;
-    void showEffects() const;
-    void showAdjustments() const;
-    void engine();
-    void effectEngine(int index);
-    void adjustmentEngine(int index);
-    bool verifyIndex(int index) const;
-    void displayEngine(int index);
-    void displayOptions();
-    void displayEdit();
-    void editEngine(int index);
-};
-
-bool Menu::verifyIndex(int index) const {
-    if (index < 0 || index >= files.size())
-        return false;
-    return true;
-}
-
-void Menu::displayEdit() {
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << " CHOOSE OPTION ";
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << endl;
-
-    cout << "1. Effects\n";
-    cout << "2. Adjustments\n";
-    cout << "3. Apply all changes\n";
-    cout << "4. Reset\n";
-    cout << "0. Go back\n";
-}
-
-void Menu::editEngine(int index) {
-    system("CLS");
-    this->displayEdit();
-
-    while (true) {
-        int option;
-        cout << "Enter option: \n";
-        cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                this->effectEngine(index);
-                this->displayEdit();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                this->adjustmentEngine(index);
-                this->displayEdit();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                this->files[index]->getImage()->applyAll();
-                cout << "~ CHANGES APPLIED SUCCESSFULLY\n";
-                this->displayEdit();
-                break;
-            }
-            case 4: {
-                system("CLS");
-                this->files[index]->getImage()->scan();
-                cout << "~ IMAGE RESET SUCCESSFULLY\n";
-                this->displayEdit();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
-        }
-    }
-}
-
-void Menu::showEffects() const {
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << " CHOOSE EFFECT ";
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << endl;
-
-    cout << "1. Blur\n";
-    cout << "2. Black and White\n";
-    cout << "3. Cartoon\n";
-    cout << "0. Go back\n";
-}
-
-void Menu::showAdjustments() const {
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << " CHOOSE ADJUSTMENT ";
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << endl;
-
-    cout << "1. Brightness\n";
-    cout << "2. Contrast\n";
-    cout << "3. Hue\n";
-    cout << "0. Go back\n";
-}
-
-void Menu::effectEngine(int index) {
-    system("CLS");
-    this->showEffects();
-
-    while (true) {
-        int option;
-        cout << "Enter option: \n";
-        cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                int temp;
-                cout << "Enter blur amount: \n";
-                cin >> temp;
-                cin.get();
-                files[index]->setBlurAmount(temp);
-                this->showEffects();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                bool temp;
-                cout << "Do you want to apply Black and White effect to the image (yes:1 no:0)?\n";
-                cin >> temp;
-                cin.get();
-                files[index]->setBlackWhite(temp);
-                this->showEffects();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                bool temp;
-                cout << "Do you want to apply Cartoon effect to the image (yes:1 no:0)?\n";
-                cin >> temp;
-                cin.get();
-                files[index]->setCartoon(temp);
-                this->showEffects();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
-        }
-    }
-}
-
-void Menu::adjustmentEngine(int index) {
-    system("CLS");
-    this->showAdjustments();
-
-    while (true) {
-        int option;
-        cout << "Enter option: \n";
-        cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                double temp;
-                cout << "Enter Brightness [-100,100]: \n";
-                cin >> temp;
-                cin.get();
-                files[index]->setBrightness(temp);
-                this->showAdjustments();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                double temp;
-                cout<< "Enter contrast [0,10]: \n\t1 = nothing changes\n\t[0,1) = lower contrast\n\t(1,10] = higher contrast\n";
-                cin >> temp;
-                cin.get();
-                files[index]->setContrast(temp);
-                this->showAdjustments();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                int temp;
-                cout << "Enter hue [0,180]: \n";
-                cin >> temp;
-                cin.get();
-                files[index]->setHue(temp);
-                this->showAdjustments();
-                break;
-            }
-            case 0: {
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
-        }
-    }
-}
-
-void Menu::displayOptions() {
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << " CHOOSE OPTION ";
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << endl;
-
-    cout << "1. INFO\n";
-    cout << "2. SHOW\n";
-    cout << "3. SAVE\n";
-    cout << "0. Go back\n";
-}
-
-void Menu::displayEngine(int index) {
-    system("CLS");
-    this->displayOptions();
-
-    while (true) {
-        int option;
-        cout << "Enter option: \n";
-        cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                cout << *this->files[index]->getImage() << endl;
-                this->displayOptions();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                this->files[index]->getImage()->show();
-                this->displayOptions();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                this->files[index]->getImage()->write();
-                cout << "~ IMAGE WAS SAVED SUCCESSFULLY\n";
-                this->displayOptions();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
-        }
-    }
-}
-
-void Menu::showMenu() const {
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << " MENU ";
-    for (int i = 0; i < 10; i++) cout << "-";
-    cout << endl;
-
-    cout << "1. Create\n"; // create a new object with effects adjs or all
-    cout << "2. Edit\n"; // Edit an effect/ Adjustment/ or all
-    cout << "3. Delete\n";
-    cout << "4. Display\n"; // Info/Image on screen/save to location
-    cout << "0. Exit\n";
-}
-
-void Menu::engine() {
-    this->showMenu();
-
-    while (true) {
-        int option;
-        cout << "Enter option: \n";
-        cin >> option;
-        cin.get();
-        switch (option) {
-            case 0: {
-                return;
-            }
-            case 1: {
-                system("CLS");
-                Photoshop *s = new Photoshop();
-                cin >> *s;
-                if (s->isGoBack() == false) this->files.push_back(s);
-                else delete s;
-                this->showMenu();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                int index;
-                if (!files.empty()) {
-                    for (int i = 0; i < files.size(); i++)
-                        cout << "Image: " << i << "\n\tName: " << files[i]->getImage()->getName() << "\n\tPath: "
-                             << files[i]->getImage()->getPath() << endl;
-                    cout << "Give index: \n";
-                    cin >> index;
-                    cin.get();
-                    if (this->verifyIndex(index)) {
-                        this->editEngine(index);
-                    } else cout << "~ INVALID INDEX\n";
-                } else cout << "~ NO IMAGES\n";
-                this->showMenu();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                int index;
-                if (!files.empty()) {
-                    for (int i = 0; i < files.size(); i++)
-                        cout << "Image: " << i << "\n\tName: " << files[i]->getImage()->getName() << "\n\tPath: "
-                             << files[i]->getImage()->getPath() << endl;
-                    cout << "Give index: \n";
-                    cin >> index;
-                    cin.get();
-                    if (this->verifyIndex(index)) {
-                        this->files.erase(this->files.begin() + index);
-                        cout << "~ IMAGE DELETED SUCCESSFULLY\n";
-                    } else cout << "~ INVALID INDEX\n";
-                } else cout << "~ NO IMAGES\n";
-                this->showMenu();
-                break;
-            }
-            case 4: {
-                system("CLS");
-                int index;
-                if (!files.empty()) {
-                    for (int i = 0; i < files.size(); i++)
-                        cout << "Image: " << i << "\n\tName: " << files[i]->getImage()->getName() << "\n\tPath: "
-                             << files[i]->getImage()->getPath() << endl;
-                    cout << "Give index: \n";
-                    cin >> index;
-                    cin.get();
-                    if (this->verifyIndex(index)) {
-                        this->displayEngine(index);
-                    } else cout << "~ INVALID INDEX\n";
-                } else cout << "~ NO IMAGES\n";
-                this->showMenu();
-                break;
-            }
-            default: {
-                cout << "~ INVALID OPTION\n";
-            }
-        }
-    }
-}
-
 class Video {
 private:
     static int counter;
@@ -1249,15 +976,10 @@ private:
 public:
     Video(const string &name = "", double fps = 0.0, int blurAmount = 0, bool blackWhite = false,
           bool cartoon = false, double brightness = 0, double contrast = 1, int hue = 0);
-
     Video(const Video &obj);
-
     ~Video();
-
     Video &operator=(const Video &obj);
-
     friend istream &operator>>(istream &in, Video &obj);
-
     friend ostream &operator<<(ostream &out, const Video &obj);
 
     bool operator<(const Video& obj) const {
@@ -1288,7 +1010,33 @@ public:
     void setHue(int hue);
 
     string getType(){return typeid(*this).name();}
+    void serialize(string) const;
+    void deserialize(std::ifstream&);
 };
+// TODO read video/photo in deserialize
+void Video::serialize(string fileName) const {
+    std::ofstream out(fileName, std::ios_base::app);
+
+    out<<name<<" "<<blurAmount<<" "<<blackWhite<<" "<<cartoon<<" "<<brightness<<" "<<contrast<<" "<<hue;
+
+    out.close();
+}
+
+void Video::deserialize(std::ifstream& in) {
+    string name;
+    bool blackWhite,cartoon;
+    int blurAmount,hue;
+    double brightness, contrast;
+
+    in>>name>>blurAmount>>blackWhite>>cartoon>>brightness>>contrast>>hue;
+    this->name = name;
+    this->blurAmount = blurAmount;
+    this->blackWhite = blackWhite;
+    this->cartoon = cartoon;
+    this->brightness = brightness;
+    this->contrast = contrast;
+    this->hue = hue;
+}
 
 int Video::counter = 0;
 
@@ -1323,6 +1071,8 @@ Video::Video(const Video &obj) : id(counter++) {
     this->cartoon = obj.cartoon;
     this->brightness = obj.brightness;
     this->contrast = obj.contrast;
+    this->capture = capture;
+    this->sequence = sequence;
 }
 
 Video::~Video() {
@@ -1353,6 +1103,8 @@ Video &Video::operator=(const Video &obj) {
         this->cartoon = obj.cartoon;
         this->brightness = obj.brightness;
         this->contrast = obj.contrast;
+        this->capture = capture;
+        this->sequence = sequence;
     }
     return *this;
 }
@@ -1409,6 +1161,7 @@ void Video::scan() {
     std::chrono::high_resolution_clock::time_point wasted_end;
     std::chrono::high_resolution_clock::time_point wasted_start;
     this->capture.open(0);
+    if(!this->sequence.empty()) this->sequence.clear();
     // takes 35ms for camera to start which can be seen at low length videos
     // thats why i took in account the wasted time for it
     try {
@@ -1458,8 +1211,10 @@ void Video::write() const {
 //    fourcc = video encode MJPG is for mp4 and avi
 //    15 = fps (this is max for my webcam) , size for window, true because it has colors
     try {
+        bool checkImage = true;
+        if(sequence[0].channels() == 1) checkImage = false;
         cv::VideoWriter writer("../Videos/" + name, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps,
-                               cv::Size(sequence[0].cols, sequence[0].rows), true);
+                               cv::Size(sequence[0].cols, sequence[0].rows), checkImage);
 
 //        with address so it won't copy each frame
         for (const auto &frame: sequence) writer.write(frame);
@@ -1498,7 +1253,7 @@ void Video::blur() {
             std::mutex printMutex;
             cv::parallel_for_(cv::Range(0, sequence.size()), [&](const cv::Range &range) {
                 for (int i = range.start; i < range.end; i++) {
-                    if (i % fraction == 0 && i != 0) {
+                    if (i % fraction == 0 && i != 0 && counter <= 10) {
                         // locks the variable until it goes out of scope
                         std::lock_guard<std::mutex> lock(printMutex);
                         counter++;
@@ -1715,6 +1470,13 @@ void Video::applyAll() {
     this->bw();
     this->cartoon_effect();
 }
+
+class MyException:public std::exception {
+public:
+    virtual const char* what() const throw() {
+        return "~ FAILED TO IMPORT FILES\n";
+    }
+} importException;
 
 template<class T>
 class Project {
@@ -2133,7 +1895,6 @@ void Project<T>::menuEngine() {
                 break;
 
             }
-            case 5: this->write("test.out");
             case 0: {
                 system("CLS");
                 return;
@@ -2150,17 +1911,19 @@ void Project<T>::write(string output) {
     std::ofstream out(output);
 
     out<<files.size()<<endl;
-//    TODO display what type of image
+    out.close();
     for(auto it = files.begin(); it != files.end(); it++) {
-        out<<(*it)->getType()<<endl;
-        out<<**it<<endl;
+        out.open(output,std::ios_base::app);
+        out<<"\n"<<(*it)->getType()<<" ";
+        out.close();
+        (*it)->serialize(output);
     }
 
-    out.close();
+    std::cout<<"~ EXPORT SUCCESSFUL\n";
 }
 
-template<class T>
-void Project<T>::read(string input) {
+template<>
+void Project<Photoshop>::read(string input) {
     input = "../" + input;
     std::ifstream in(input);
 
@@ -2168,10 +1931,55 @@ void Project<T>::read(string input) {
     in>>nrObj;
     in.get();
 
-    string temp;
-    for(int i=0;i<nrObj;i++) {
 
+    try {
+        for (int i = 0; i < nrObj; i++) {
+            string cls, name, temp;
+            in >> cls >> name;
+
+            temp = cls + " " + name;
+
+            if (temp == "class Video") throw importException;
+
+            Photoshop *p = new Photoshop();
+            if (temp == "class Effect") p->getImageByReference() = new Effect();
+            if (temp == "class Adjustment") p->getImageByReference() = new Adjustment();
+            if (temp == "class Edited") p->getImageByReference() = new Edited();
+
+            p->deserialize(in);
+            files.push_back(p);
+        }
+        std::cout << "~ IMPORT SUCCESSFUL\n";
     }
+    catch (MyException& e) {cout<<e.what();}
+}
+
+template<>
+void Project<Video>::read(string input) {
+    input = "../" + input;
+    std::ifstream in(input);
+
+    int nrObj;
+    in>>nrObj;
+    in.get();
+
+    try {
+        for(int i=0;i<nrObj;i++) {
+            string cls,name,temp;
+            in>>cls>>name;
+
+            temp = cls + " " + name;
+
+            if(temp == "class Effect" || temp == "class Adjustment" || temp == "class Edited")
+                throw importException;
+
+            Video* v = new Video();
+            v->deserialize(in);
+            files.push_back(v);
+        }
+        std::cout<<"~ IMPORT SUCCESSFUL\n";
+    }
+    catch (MyException& e) {cout<<e.what();}
 }
 
 int main() {
@@ -2191,12 +1999,11 @@ int main() {
     v.contrast_adjustment();
     v.show();
     v.write();*/
-    Project<Photoshop> a;
+    Project<Video> a;
     a.menuEngine();
 //    a.displayEngine();
     return 0;
 }
-// TODO singleton menu with import/export data
-// TODO 6 throws (3 unique)
+// TODO singleton menu
 // TODO check input type
-// TODO containers
+// TODO set for project
