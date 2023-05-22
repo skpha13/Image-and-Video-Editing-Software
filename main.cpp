@@ -88,10 +88,10 @@ public:
     string getName() const;
     string getPath() const;
 
-    bool operator<(const Image& obj) {
+    bool operator<(const Image& obj) const {
         return !(this->name > obj.name);
     }
-    bool operator==(const Image& obj) {
+    bool operator==(const Image& obj) const {
         return this->name == obj.name;
     }
     virtual void serialize(string) const;
@@ -834,7 +834,6 @@ public:
     void show() const {image->show();}
     void applyAll(){image->applyAll();}
 
-//  TODO make every setter for software
     // setters for template
     void setBlurAmount(int);
     void setBlackWhite(bool);
@@ -848,6 +847,13 @@ public:
     }
     void serialize(string) const;
     void deserialize(std::ifstream&);
+
+    bool operator<(const Photoshop& obj) const {
+        return *(this->image) < *(obj.image);
+    }
+    bool operator==(const Photoshop& obj) const {
+        return *(this->image) == *(obj.image);
+    }
 };
 
 void Photoshop::serialize(string fileName) const {
@@ -1013,7 +1019,7 @@ public:
     void serialize(string) const;
     void deserialize(std::ifstream&);
 };
-// TODO read video/photo in deserialize
+
 void Video::serialize(string fileName) const {
     std::ofstream out(fileName, std::ios_base::app);
 
@@ -1219,7 +1225,7 @@ void Video::write() const {
 //        with address so it won't copy each frame
         for (const auto &frame: sequence) writer.write(frame);
 
-        if (!writer.isOpened()) throw "~ Failed to open the video writer";
+        if (!writer.isOpened()) throw string("~ Failed to open the video writer");
 
         writer.release();
     }
@@ -1489,17 +1495,35 @@ public:
     Project() {
         name = "new project";
         versions[current] = 0;
+        current = NULL;
     }
     ~Project() {
         if(!files.empty()) files.clear();
         if(!versions.empty()) versions.clear();
         if(versions.find(current) != versions.end()) versions.erase(current);
     }
-    friend istream& operator>>(istream &in, Project<T>& obj);
-    friend ostream& operator<<(ostream &out, const Project<T>& obj);
 
-    bool operator<(const Project& obj) {
-        return this-name < obj.name;
+    // doesnt work outside class
+    friend std::istream& operator>>(std::istream &in, Project<T>& obj) {
+        std::cout<<"Enter project name: \n";
+        in>>obj.name;
+
+        obj.menuEngine();
+
+        return in;
+    }
+    friend std::ostream& operator<<(std::ostream &out, const Project<T>& obj) {
+        std::cout<<"Project name: "<<obj.name<<"\n";
+
+        return out;
+    }
+
+    bool operator<(const Project<T>& obj) const{
+        return this->name < obj.name;
+    }
+
+    const string &getName() const {
+        return name;
     }
 
     // template methods
@@ -1509,8 +1533,6 @@ public:
     void menuEngine();
     void displayEdit();
     void editEngine();
-    void saveVersion();
-    void changeVersion();
     void effectsEngine();
     void displayEffects();
     void adjustmentsEngine();
@@ -1519,23 +1541,6 @@ public:
     void write(string);
     void read(string);
 };
-
-template<class T>
-istream& operator>>(istream& in, Project<T>& obj) {
-    std::cout<<"Enter project name: \n";
-    in>>obj.name;
-
-    obj.menuEngine();
-
-    return in;
-}
-
-template<class T>
-ostream& operator<<(ostream& out, const Project<T>& obj) {
-    std::cout<<"Project name: "<<obj.name<<"\n";
-
-    return out;
-}
 
 template<class T>
 void Project<T>::displayEffects() {
@@ -1842,57 +1847,63 @@ void Project<T>::menuEngine() {
             }
             case 2: {
                 system("CLS");
-                this->editEngine();
+                if(current != NULL) {
+                    this->editEngine();
+                } else cout<<"~ NO FILE SELECTED\n";
                 this->displayMenu();
                 break;
             }
             case 3: {
                 system("CLS");
-                if(files.size() > 0) {
-                    int index = 0;
-                    files.sort();
-                    for (auto it = files.begin(); it != files.end(); it++)
-                        std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
-                    std::cout << "Choose file: \n";
-                    int fileNr;
-                    cin >> fileNr;
-                    cin.get();
-                    if (fileNr >= 0 && fileNr < files.size()) {
-                        for (auto it = files.begin(); it != files.end(); it++) {
-                            if (fileNr == 0) {
-                                current = *it;
-                                break;
+                try {
+                    if (files.size() > 0) {
+                        if (current == NULL) throw string("~ NO FILE SELECTED\n");
+                        int index = 0;
+                        files.sort();
+                        for (auto it = files.begin(); it != files.end(); it++)
+                            std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
+                        std::cout << "Choose file: \n";
+                        int fileNr;
+                        cin >> fileNr;
+                        cin.get();
+                        if (fileNr >= 0 && fileNr < files.size()) {
+                            for (auto it = files.begin(); it != files.end(); it++) {
+                                if (fileNr == 0) {
+                                    current = *it;
+                                    break;
+                                }
+                                fileNr--;
                             }
-                            fileNr--;
-                        }
-                        files.remove(current);
-                        cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
-                    } else cout << "~ INVALID INDEX\n";
+                            files.remove(current);
+                            cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
+                        } else cout << "~ INVALID INDEX\n";
 
-                    index = 0;
-                    for (auto it = files.begin(); it != files.end(); it++)
-                        std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
+                        index = 0;
+                        for (auto it = files.begin(); it != files.end(); it++)
+                            std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
 
-                    std::cout << "Choose another file: \n";
-                    cin >> fileNr;
-                    cin.get();
+                        std::cout << "Choose file: \n";
+                        cin >> fileNr;
+                        cin.get();
 
-                    if (fileNr >= 0 && fileNr < files.size()) {
-                        for (auto it = files.begin(); it != files.end(); it++) {
-                            if (fileNr == 0) {
-                                current = *it;
-                                break;
+                        if (fileNr >= 0 && fileNr < files.size()) {
+                            for (auto it = files.begin(); it != files.end(); it++) {
+                                if (fileNr == 0) {
+                                    current = *it;
+                                    break;
+                                }
+                                fileNr--;
                             }
-                            fileNr--;
-                        }
-                    } else cout << "~ INVALID INDEX\n";
-                } else cout<<"~ NO FILES\n";
+                        } else cout << "~ INVALID INDEX\n";
+                    } else cout << "~ NO FILES\n";
+                } catch(const string& err) {std::cout<<err;}
                 this->displayMenu();
                 break;
             }
             case 4: {
                 system("CLS");
-                this->displayEngine();
+                if(current != NULL) this->displayEngine();
+                else cout<<"~ NO FILE SELECTED\n";
                 this->displayMenu();
                 break;
 
@@ -1912,16 +1923,19 @@ void Project<T>::write(string output) {
     output = "../" + output;
     std::ofstream out(output);
 
-    out<<files.size()<<endl;
-    out.close();
-    for(auto it = files.begin(); it != files.end(); it++) {
-        out.open(output,std::ios_base::app);
-        out<<"\n"<<(*it)->getType()<<" ";
+    if(!files.empty()) {
+        out << files.size() << endl << name;
         out.close();
-        (*it)->serialize(output);
-    }
+        for (auto it = files.begin(); it != files.end(); it++) {
+            out.open(output, std::ios_base::app);
+            out << "\n" << (*it)->getType() << " ";
+            out.close();
+            (*it)->serialize(output);
+        }
 
-    std::cout<<"~ EXPORT SUCCESSFUL\n";
+        std::cout << "~ EXPORT SUCCESSFUL\n";
+    }
+    else std::cout<<"~ NO FILES TO EXPORT\n";
 }
 
 template<>
@@ -1932,7 +1946,9 @@ void Project<Photoshop>::read(string input) {
     int nrObj;
     in>>nrObj;
     in.get();
-
+    string nameFromFile;
+    in>>nameFromFile;
+    this->name = nameFromFile;
 
     try {
         for (int i = 0; i < nrObj; i++) {
@@ -1984,21 +2000,21 @@ void Project<Video>::read(string input) {
     catch (MyException& e) {cout<<e.what();}
 }
 
+template<class T>
 class Menu {
 private:
    static Menu* singleton;
    static int nrOfInstances;
    Menu() {
-       initOpenCV();
        projectType = false;
        isSaved = false;
-       this->engine();
+       currentProj = NULL;
    }
    Menu(const Menu&) = delete;
    // 0 for images 1 for videos
    bool projectType, isSaved;
-   Project<Photoshop> projPhoto;
-   Project<Video> projVideo;
+   std::set<T*> proj;
+   T* currentProj;
 public:
     static Menu* getInstance() {
         nrOfInstances++;
@@ -2012,14 +2028,16 @@ public:
 
     void displayProject();
     void projectEngine();
-    void displayOptions();
-    void engine();
 };
 
-Menu* Menu::singleton = 0;
-int Menu::nrOfInstances = 0;
+template<class T>
+Menu<T>* Menu<T>::singleton = 0;
 
-void Menu::displayProject() {
+template<class T>
+int Menu<T>::nrOfInstances = 0;
+
+template<class T>
+void Menu<T>::displayProject() {
     for (int i = 0; i < 10; i++) cout << "-";
     cout << " PROJECT PAGE ";
     for (int i = 0; i < 10; i++) cout << "-";
@@ -2030,8 +2048,9 @@ void Menu::displayProject() {
     cout << "3. Save project\n";
     cout << "0. Go back\n";
 }
-// TODO implement set of Projects
-void Menu::projectEngine() {
+
+template<class T>
+void Menu<T>::projectEngine() {
     system("CLS");
     this->displayProject();
 
@@ -2043,8 +2062,10 @@ void Menu::projectEngine() {
         switch (option) {
             case 1: {
                 system("CLS");
-                if(projectType == 0) std::cin>>projPhoto;
-                else std::cin>>projVideo;
+                T* temp = new T();
+                cin>>*temp;
+                proj.insert(temp);
+                currentProj = temp;
                 this->displayProject();
                 break;
             }
@@ -2053,40 +2074,51 @@ void Menu::projectEngine() {
                 string temp;
                 std::cout<<"Enter file name: \n";
                 getline(std::cin,temp);
-                temp = "../" + temp;
-                if(projectType == 0) projPhoto.read(temp);
-                else projVideo.read(temp);
-                this->isSaved = true;
+
+                if(currentProj == NULL) currentProj = new T();
+                currentProj->read(temp);
+                proj.insert(currentProj);
+                currentProj->menuEngine();
                 this->displayProject();
                 break;
             }
             case 3: {
+                system("CLS");
                 string temp;
                 std::cout<<"Enter file name: \n";
                 getline(std::cin,temp);
-                temp = "../" + temp;
-                if(projectType == 0) projPhoto.write(temp);
-                else projVideo.write(temp);
+
+                if(currentProj != NULL) {
+                    currentProj->write(temp);
+                    isSaved = true;
+                }
+
                 this->displayProject();
                 break;
             }
             case 0: {
+                system("CLS");
                 if(isSaved == 0) {
-                    std::cout<<"Do you want to save changes to "<<" before closing (yes:1 no:0)?\n";
+                    std::cout<<"Do you want to save changes to "<<currentProj->getName()<<" before closing (yes:1 no:0)?\n";
                     bool temp;
                     std::cin>>temp;
                     cin.get();
-                    if(temp == 1) break;
-                    else return;
+                    if(temp == 1) {
+                        string fileName;
+                        std::cout<<"Enter file name: \n";
+                        getline(std::cin,fileName);
+                        currentProj->write(fileName);
+                    }
                 }
+                return;
             }
             default:
                 cout << "~ INVALID OPTION\n";
         }
     }
 }
-
-void Menu::displayOptions() {
+// TODO if project was saved change isSaved
+void displayMainMenu() {
     for (int i = 0; i < 10; i++) cout << "-";
     cout << " EDITING SOFTARE ";
     for (int i = 0; i < 10; i++) cout << "-";
@@ -2097,10 +2129,11 @@ void Menu::displayOptions() {
     cout << "0. Exit\n";
 }
 
-void Menu::engine() {
-    system("CLS");
-    this->displayOptions();
+int main() {
+    initOpenCV();
 
+    system("CLS");
+    displayMainMenu();
     while(true) {
         int option;
         cout << "Enter option: \n";
@@ -2109,50 +2142,26 @@ void Menu::engine() {
         switch (option) {
             case 1: {
                 system("CLS");
-                this->projectType = 0;
-                this->projectEngine();
-                this->displayOptions();
+                Menu<Project<Photoshop>>* m = m->getInstance();
+                m->projectEngine();
+                displayMainMenu();
                 break;
             }
             case 2: {
                 system("CLS");
-                this->projectType = 1;
-                this->projectEngine();
-                this->displayOptions();
+                Menu<Project<Video>>* m = m->getInstance();
+                m->projectEngine();
+                displayMainMenu();
                 break;
             }
             case 0: {
-                system("CLS");
-                return;
+                return 0;
             }
             default:
                 cout << "~ INVALID OPTION\n";
         }
     }
-}
-
-int main() {
-    initOpenCV();
-//    Menu m;
-    /*
-    Video v;
-    cin>>v;
-    cout<<v<<endl;
-    Video v2(v);
-    cout<<v2<<endl;
-    Video v3;
-    v3 = v2;
-    cout<<v3<<endl;
-    Video v("test.mp4",0,0,0,0,0,2,0);
-    v.scan();
-    v.contrast_adjustment();
-    v.show();
-    v.write();*/
-    Project<Video> a;
-    a.menuEngine();
-//    a.displayEngine();
     return 0;
 }
-// TODO singleton menu
 // TODO check input type
-// TODO set for project
+// TODO intreaba de ce nu merge outside class operator>> la template
