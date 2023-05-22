@@ -923,6 +923,12 @@ istream &operator>>(istream &in, Photoshop &obj) {
 
     int temp;
     cin >> temp;
+    if(std::cin.fail()) {
+        std::cout<<"~ INVALID INPUT\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        return in;
+    }
     cin.get();
 
     switch (temp) {
@@ -1579,44 +1585,50 @@ void Project<T>::effectsEngine() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                int temp;
-                cout << "Enter blur amount: \n";
-                cin >> temp;
-                cin.get();
-                current->setBlurAmount(temp);
-                this->displayEffects();
-                break;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    int temp;
+                    cout << "Enter blur amount: \n";
+                    cin >> temp;
+                    cin.get();
+                    current->setBlurAmount(temp);
+                    this->displayEffects();
+                    break;
+                }
+                case 2: {
+                    system("CLS");
+                    bool temp;
+                    cout << "Do you want to apply Black and White effect to the image (yes:1 no:0)?\n";
+                    cin >> temp;
+                    cin.get();
+                    current->setBlackWhite(temp);
+                    this->displayEffects();
+                    break;
+                }
+                case 3: {
+                    system("CLS");
+                    bool temp;
+                    cout << "Do you want to apply Cartoon effect to the image (yes:1 no:0)?\n";
+                    cin >> temp;
+                    cin.get();
+                    current->setCartoon(temp);
+                    this->displayEffects();
+                    break;
+                }
+                case 0: {
+                    system("CLS");
+                    return;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            case 2: {
-                system("CLS");
-                bool temp;
-                cout << "Do you want to apply Black and White effect to the image (yes:1 no:0)?\n";
-                cin >> temp;
-                cin.get();
-                current->setBlackWhite(temp);
-                this->displayEffects();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                bool temp;
-                cout << "Do you want to apply Cartoon effect to the image (yes:1 no:0)?\n";
-                cin >> temp;
-                cin.get();
-                current->setCartoon(temp);
-                this->displayEffects();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
 }
@@ -1630,44 +1642,50 @@ void Project<T>::adjustmentsEngine() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                double temp;
-                cout << "Enter Brightness [-100,100]: \n";
-                cin >> temp;
-                cin.get();
-                current->setBrightness(temp);
-                this->displayAdjusments();
-                break;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    double temp;
+                    cout << "Enter Brightness [-100,100]: \n";
+                    cin >> temp;
+                    cin.get();
+                    current->setBrightness(temp);
+                    this->displayAdjusments();
+                    break;
+                }
+                case 2: {
+                    system("CLS");
+                    double temp;
+                    cout
+                            << "Enter contrast [0,10]: \n\t1 = nothing changes\n\t[0,1) = lower contrast\n\t(1,10] = higher contrast\n";
+                    cin >> temp;
+                    cin.get();
+                    current->setContrast(temp);
+                    this->displayAdjusments();
+                    break;
+                }
+                case 3: {
+                    system("CLS");
+                    int temp;
+                    cout << "Enter hue [0,180]: \n";
+                    cin >> temp;
+                    cin.get();
+                    current->setHue(temp);
+                    this->displayAdjusments();
+                    break;
+                }
+                case 0: {
+                    return;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            case 2: {
-                system("CLS");
-                double temp;
-                cout
-                        << "Enter contrast [0,10]: \n\t1 = nothing changes\n\t[0,1) = lower contrast\n\t(1,10] = higher contrast\n";
-                cin >> temp;
-                cin.get();
-                current->setContrast(temp);
-                this->displayAdjusments();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                int temp;
-                cout << "Enter hue [0,180]: \n";
-                cin >> temp;
-                cin.get();
-                current->setHue(temp);
-                this->displayAdjusments();
-                break;
-            }
-            case 0: {
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
 }
@@ -1696,42 +1714,48 @@ void Project<T>::editEngine() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                this->effectsEngine();
-                this->displayEdit();
-                break;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    this->effectsEngine();
+                    this->displayEdit();
+                    break;
+                }
+                case 2: {
+                    system("CLS");
+                    this->adjustmentsEngine();
+                    this->displayEdit();
+                    break;
+                }
+                case 3: {
+                    system("CLS");
+                    current->applyAll();
+                    versions[current]++;
+                    cout << "~ CHANGES APPLIED SUCCESSFULLY\n";
+                    this->displayEdit();
+                    break;
+                }
+                case 4: {
+                    system("CLS");
+                    current->scan();
+                    versions[current] = 0;
+                    cout << "~ IMAGE RESET SUCCESSFULLY\n";
+                    this->displayEdit();
+                    break;
+                }
+                case 0: {
+                    system("CLS");
+                    return;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            case 2: {
-                system("CLS");
-                this->adjustmentsEngine();
-                this->displayEdit();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                current->applyAll();
-                versions[current]++;
-                cout << "~ CHANGES APPLIED SUCCESSFULLY\n";
-                this->displayEdit();
-                break;
-            }
-            case 4: {
-                system("CLS");
-                current->scan();
-                versions[current] = 0;
-                cout << "~ IMAGE RESET SUCCESSFULLY\n";
-                this->displayEdit();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
 }
@@ -1758,33 +1782,39 @@ void Project<T>::displayEngine() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                std::cout<<*current<<endl;
-                this->displayOptions();
-                break;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    std::cout << *current << endl;
+                    this->displayOptions();
+                    break;
+                }
+                case 2: {
+                    system("CLS");
+                    current->show();
+                    this->displayOptions();
+                    break;
+                }
+                case 3: {
+                    system("CLS");
+                    current->write();
+                    cout << "~ FILE WAS SAVED SUCCESSFULLY\n";
+                    this->displayOptions();
+                    break;
+                }
+                case 0: {
+                    system("CLS");
+                    return;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            case 2: {
-                system("CLS");
-                current->show();
-                this->displayOptions();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                current->write();
-                cout << "~ FILE WAS SAVED SUCCESSFULLY\n";
-                this->displayOptions();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
 }
@@ -1808,56 +1838,25 @@ void Project<T>::menuEngine() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                std::cout<<"Open new file (yes:1 no:0)?\n";
-                bool temp;
-                cin>>temp;
-                cin.get();
-                if(temp == true) {
-                    T* tempOBJ = new T();
-                    cin>>*tempOBJ;
-                    files.push_back(tempOBJ);
-                    current = tempOBJ;
-                }
-                else if(files.size() > 0){
-                    int index = 0;
-                    files.sort();
-                    for(auto it = files.begin(); it != files.end(); it++)
-                        std::cout<<"\tFile: "<<index++<<endl, std::cout<<**it<<endl;
-                    std::cout<<"Choose file: \n";
-                    int fileNr;
-                    cin>>fileNr;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    std::cout << "Open new file (yes:1 no:0)?\n";
+                    bool temp;
+                    cin >> temp;
                     cin.get();
-                    if(fileNr >= 0 && fileNr < files.size()) {
-                        for (auto it = files.begin(); it != files.end(); it++) {
-                            if (fileNr == 0) {
-                                current = *it;
-                                break;
-                            }
-                            fileNr--;
-                        }
-                    } else cout<<"~ INVALID INDEX\n";
-                }
-                else cout<<"~ NO FILES\n";
-                this->displayMenu();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                if(current != NULL) {
-                    this->editEngine();
-                } else cout<<"~ NO FILE SELECTED\n";
-                this->displayMenu();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                try {
-                    if (files.size() > 0) {
-                        if (current == NULL) throw string("~ NO FILE SELECTED\n");
+                    if (temp == true) {
+                        T *tempOBJ = new T();
+                        cin >> *tempOBJ;
+                        files.push_back(tempOBJ);
+                        current = tempOBJ;
+                    } else if (files.size() > 0) {
                         int index = 0;
                         files.sort();
                         for (auto it = files.begin(); it != files.end(); it++)
@@ -1874,46 +1873,81 @@ void Project<T>::menuEngine() {
                                 }
                                 fileNr--;
                             }
-                            files.remove(current);
-                            cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
-                        } else cout << "~ INVALID INDEX\n";
-
-                        index = 0;
-                        for (auto it = files.begin(); it != files.end(); it++)
-                            std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
-
-                        std::cout << "Choose file: \n";
-                        cin >> fileNr;
-                        cin.get();
-
-                        if (fileNr >= 0 && fileNr < files.size()) {
-                            for (auto it = files.begin(); it != files.end(); it++) {
-                                if (fileNr == 0) {
-                                    current = *it;
-                                    break;
-                                }
-                                fileNr--;
-                            }
                         } else cout << "~ INVALID INDEX\n";
                     } else cout << "~ NO FILES\n";
-                } catch(const string& err) {std::cout<<err;}
-                this->displayMenu();
-                break;
-            }
-            case 4: {
-                system("CLS");
-                if(current != NULL) this->displayEngine();
-                else cout<<"~ NO FILE SELECTED\n";
-                this->displayMenu();
-                break;
+                    this->displayMenu();
+                    break;
+                }
+                case 2: {
+                    system("CLS");
+                    if (current != NULL) {
+                        this->editEngine();
+                    } else cout << "~ NO FILE SELECTED\n";
+                    this->displayMenu();
+                    break;
+                }
+                case 3: {
+                    system("CLS");
+                    try {
+                        if (files.size() > 0) {
+                            if (current == NULL) throw string("~ NO FILE SELECTED\n");
+                            int index = 0;
+                            files.sort();
+                            for (auto it = files.begin(); it != files.end(); it++)
+                                std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
+                            std::cout << "Choose file: \n";
+                            int fileNr;
+                            cin >> fileNr;
+                            cin.get();
+                            if (fileNr >= 0 && fileNr < files.size()) {
+                                for (auto it = files.begin(); it != files.end(); it++) {
+                                    if (fileNr == 0) {
+                                        current = *it;
+                                        break;
+                                    }
+                                    fileNr--;
+                                }
+                                files.remove(current);
+                                cout << "~ FILE WAS DELETED SUCCESSFULLY\n";
+                            } else cout << "~ INVALID INDEX\n";
 
+                            index = 0;
+                            for (auto it = files.begin(); it != files.end(); it++)
+                                std::cout << "\tFile: " << index++ << endl, std::cout << **it << endl;
+
+                            std::cout << "Choose file: \n";
+                            cin >> fileNr;
+                            cin.get();
+
+                            if (fileNr >= 0 && fileNr < files.size()) {
+                                for (auto it = files.begin(); it != files.end(); it++) {
+                                    if (fileNr == 0) {
+                                        current = *it;
+                                        break;
+                                    }
+                                    fileNr--;
+                                }
+                            } else cout << "~ INVALID INDEX\n";
+                        } else cout << "~ NO FILES\n";
+                    } catch (const string &err) { std::cout << err; }
+                    this->displayMenu();
+                    break;
+                }
+                case 4: {
+                    system("CLS");
+                    if (current != NULL) this->displayEngine();
+                    else cout << "~ NO FILE SELECTED\n";
+                    this->displayMenu();
+                    break;
+
+                }
+                case 0: {
+                    system("CLS");
+                    return;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            case 0: {
-                system("CLS");
-                return;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
 }
@@ -2058,66 +2092,73 @@ void Menu<T>::projectEngine() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                T* temp = new T();
-                cin>>*temp;
-                proj.insert(temp);
-                currentProj = temp;
-                this->displayProject();
-                break;
-            }
-            case 2: {
-                system("CLS");
-                string temp;
-                std::cout<<"Enter file name: \n";
-                getline(std::cin,temp);
-
-                if(currentProj == NULL) currentProj = new T();
-                currentProj->read(temp);
-                proj.insert(currentProj);
-                currentProj->menuEngine();
-                this->displayProject();
-                break;
-            }
-            case 3: {
-                system("CLS");
-                string temp;
-                std::cout<<"Enter file name: \n";
-                getline(std::cin,temp);
-
-                if(currentProj != NULL) {
-                    currentProj->write(temp);
-                    isSaved = true;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    T *temp = new T();
+                    cin >> *temp;
+                    proj.insert(temp);
+                    currentProj = temp;
+                    this->displayProject();
+                    break;
                 }
+                case 2: {
+                    system("CLS");
+                    string temp;
+                    std::cout << "Enter file name: \n";
+                    getline(std::cin, temp);
 
-                this->displayProject();
-                break;
-            }
-            case 0: {
-                system("CLS");
-                if(isSaved == 0) {
-                    std::cout<<"Do you want to save changes to "<<currentProj->getName()<<" before closing (yes:1 no:0)?\n";
-                    bool temp;
-                    std::cin>>temp;
-                    cin.get();
-                    if(temp == 1) {
-                        string fileName;
-                        std::cout<<"Enter file name: \n";
-                        getline(std::cin,fileName);
-                        currentProj->write(fileName);
+                    if (currentProj == NULL) currentProj = new T();
+                    currentProj->read(temp);
+                    proj.insert(currentProj);
+                    currentProj->menuEngine();
+                    this->displayProject();
+                    break;
+                }
+                case 3: {
+                    system("CLS");
+                    string temp;
+                    std::cout << "Enter file name: \n";
+                    getline(std::cin, temp);
+
+                    if (currentProj != NULL) {
+                        currentProj->write(temp);
+                        isSaved = true;
                     }
+
+                    this->displayProject();
+                    break;
                 }
-                return;
+                case 0: {
+                    system("CLS");
+                    if (isSaved == 0) {
+                        std::cout << "Do you want to save changes to " << currentProj->getName()
+                                  << " before closing (yes:1 no:0)?\n";
+                        bool temp;
+                        std::cin >> temp;
+                        cin.get();
+                        if (temp == 1) {
+                            string fileName;
+                            std::cout << "Enter file name: \n";
+                            getline(std::cin, fileName);
+                            currentProj->write(fileName);
+                        }
+                    }
+                    return;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
 }
-// TODO if project was saved change isSaved
+
 void displayMainMenu() {
     for (int i = 0; i < 10; i++) cout << "-";
     cout << " EDITING SOFTARE ";
@@ -2138,27 +2179,34 @@ int main() {
         int option;
         cout << "Enter option: \n";
         cin >> option;
-        cin.get();
-        switch (option) {
-            case 1: {
-                system("CLS");
-                Menu<Project<Photoshop>>* m = m->getInstance();
-                m->projectEngine();
-                displayMainMenu();
-                break;
+        if(std::cin.fail()) {
+            std::cout<<"~ INVALID INPUT\n";
+            std::cin.clear();
+            // size of the input and delimeter of the input
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        } else {
+            cin.get();
+            switch (option) {
+                case 1: {
+                    system("CLS");
+                    Menu<Project<Photoshop>> *m = m->getInstance();
+                    m->projectEngine();
+                    displayMainMenu();
+                    break;
+                }
+                case 2: {
+                    system("CLS");
+                    Menu<Project<Video>> *m = m->getInstance();
+                    m->projectEngine();
+                    displayMainMenu();
+                    break;
+                }
+                case 0: {
+                    return 0;
+                }
+                default:
+                    cout << "~ INVALID OPTION\n";
             }
-            case 2: {
-                system("CLS");
-                Menu<Project<Video>>* m = m->getInstance();
-                m->projectEngine();
-                displayMainMenu();
-                break;
-            }
-            case 0: {
-                return 0;
-            }
-            default:
-                cout << "~ INVALID OPTION\n";
         }
     }
     return 0;
