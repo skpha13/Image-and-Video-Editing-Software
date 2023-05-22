@@ -1292,7 +1292,7 @@ void Video::bw() {
             int counter = 0;
             // no parallelization here because it's a pretty fast effect
             for (int i = 0; i < sequence.size(); i++) {
-                if (i % fraction == 0 && i != 0) {
+                if (i % fraction == 0 && i != 0 && counter <= 10) {
                     counter++;
                     system("CLS");
                     std::cout << "~ LOADING [";
@@ -1315,7 +1315,7 @@ void Video::cartoon_effect() {
             int fraction = floor(((double) sequence.size()) / 10);
             int counter = 0;
             for (int i = 0; i < sequence.size(); i++) {
-                if (i % fraction == 0 && i != 0) {
+                if (i % fraction == 0 && i != 0 && counter <= 10) {
                     counter++;
                     system("CLS");
                     std::cout << "~ LOADING [";
@@ -1352,7 +1352,7 @@ void Video::brightness_adjustment() {
                 int counter = 0;
                 // no parallelization here because it's a pretty fast adjustment
                 for (int i = 0; i < sequence.size(); i++) {
-                    if (i % fraction == 0 && i != 0) {
+                    if (i % fraction == 0 && i != 0 && counter <= 10) {
                         counter++;
                         system("CLS");
                         std::cout << "~ LOADING [";
@@ -1386,7 +1386,7 @@ void Video::contrast_adjustment() {
                 int counter = 0;
                 // no parallelization here because it's a pretty fast adjustment
                 for (int i = 0; i < sequence.size(); i++) {
-                    if (i % fraction == 0 && i != 0) {
+                    if (i % fraction == 0 && i != 0 && counter <= 10) {
                         counter++;
                         system("CLS");
                         std::cout << "~ LOADING [";
@@ -1417,7 +1417,7 @@ void Video::hue_adjustment() {
                 int counter = 0;
                 // no parallelization here because it's a pretty fast adjustment
                 for (int i = 0; i < sequence.size(); i++) {
-                    if (i % fraction == 0 && i != 0) {
+                    if (i % fraction == 0 && i != 0 && counter <= 10) {
                         counter++;
                         system("CLS");
                         std::cout << "~ LOADING [";
@@ -1984,26 +1984,23 @@ void Project<Photoshop>::read(string input) {
     in>>nameFromFile;
     this->name = nameFromFile;
 
-    try {
-        for (int i = 0; i < nrObj; i++) {
-            string cls, name, temp;
-            in >> cls >> name;
+    for (int i = 0; i < nrObj; i++) {
+        string cls, name, temp;
+        in >> cls >> name;
 
-            temp = cls + " " + name;
+        temp = cls + " " + name;
 
-            if (temp == "class Video") throw importException;
+        if (temp == "class Video") throw importException;
 
-            Photoshop *p = new Photoshop();
-            if (temp == "class Effect") p->getImageByReference() = new Effect();
-            if (temp == "class Adjustment") p->getImageByReference() = new Adjustment();
-            if (temp == "class Edited") p->getImageByReference() = new Edited();
+        Photoshop *p = new Photoshop();
+        if (temp == "class Effect") p->getImageByReference() = new Effect();
+        if (temp == "class Adjustment") p->getImageByReference() = new Adjustment();
+        if (temp == "class Edited") p->getImageByReference() = new Edited();
 
-            p->deserialize(in);
-            files.push_back(p);
-        }
-        std::cout << "~ IMPORT SUCCESSFUL\n";
+        p->deserialize(in);
+        files.push_back(p);
     }
-    catch (MyException& e) {cout<<e.what();}
+    std::cout << "~ IMPORT SUCCESSFUL\n";
 }
 
 template<>
@@ -2015,23 +2012,24 @@ void Project<Video>::read(string input) {
     in>>nrObj;
     in.get();
 
-    try {
-        for(int i=0;i<nrObj;i++) {
-            string cls,name,temp;
-            in>>cls>>name;
+    string nameFromFile;
+    in>>nameFromFile;
+    this->name = nameFromFile;
 
-            temp = cls + " " + name;
+    for(int i=0;i<nrObj;i++) {
+        string cls,name,temp;
+        in>>cls>>name;
 
-            if(temp == "class Effect" || temp == "class Adjustment" || temp == "class Edited")
-                throw importException;
+        temp = cls + " " + name;
 
-            Video* v = new Video();
-            v->deserialize(in);
-            files.push_back(v);
-        }
-        std::cout<<"~ IMPORT SUCCESSFUL\n";
+        if(temp == "class Effect" || temp == "class Adjustment" || temp == "class Edited")
+            throw importException;
+
+        Video* v = new Video();
+        v->deserialize(in);
+        files.push_back(v);
     }
-    catch (MyException& e) {cout<<e.what();}
+    std::cout<<"~ IMPORT SUCCESSFUL\n";
 }
 
 template<class T>
@@ -2115,9 +2113,11 @@ void Menu<T>::projectEngine() {
                     getline(std::cin, temp);
 
                     if (currentProj == NULL) currentProj = new T();
-                    currentProj->read(temp);
-                    proj.insert(currentProj);
-                    currentProj->menuEngine();
+                    try {
+                        currentProj->read(temp);
+                        proj.insert(currentProj);
+                        currentProj->menuEngine();
+                    } catch (const MyException& e) {std::cout<<e.what();}
                     this->displayProject();
                     break;
                 }
@@ -2211,5 +2211,4 @@ int main() {
     }
     return 0;
 }
-// TODO check input type
 // TODO intreaba de ce nu merge outside class operator>> la template
