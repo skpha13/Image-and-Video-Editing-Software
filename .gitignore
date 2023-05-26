@@ -1,4 +1,3 @@
-
 cmake-build-debug/Testing/Temporary/LastTest.log
 cmake-build-debug/Image_and_Video_Editing_Software.pdb
 cmake-build-debug/Image_and_Video_Editing_Software.ilk
@@ -53,3 +52,21 @@ cmake-build-debug/.cmake/api/v1/query/cache-v2
 .idea/.name
 .idea/workspace.xml
 .idea/inspectionProfiles/profiles_settings.xml
+cmake-build-debug/.cmake/api/v1/reply/cache-v2-ffe8e4d2c74813c2c4e8.json
+cmake-build-debug/.cmake/api/v1/reply/cmakeFiles-v1-a5fb4219f4e93655932f.json
+cmake-build-debug/.cmake/api/v1/reply/codemodel-v2-52c2e6e645165f5be6a2.json
+cmake-build-debug/.cmake/api/v1/reply/index-2023-05-26T06-38-09-0876.json
+cmake-build-debug/.cmake/api/v1/reply/target-Image_and_Video_Editing_Software-Debug-8cb0956f04bec20fca85.json
+cmake-build-debug/CMakeFiles/3.25.2/CMakeCCompiler.cmake
+cmake-build-debug/CMakeFiles/3.25.2/CMakeCXXCompiler.cmake
+cmake-build-debug/CMakeFiles/3.25.2/CMakeDetermineCompilerABI_C.bin
+cmake-build-debug/CMakeFiles/3.25.2/CMakeDetermineCompilerABI_CXX.bin
+cmake-build-debug/CMakeFiles/3.25.2/CMakeRCCompiler.cmake
+cmake-build-debug/CMakeFiles/3.25.2/CMakeSystem.cmake
+cmake-build-debug/CMakeFiles/3.25.2/CompilerIdC/CMakeCCompilerId.c
+cmake-build-debug/CMakeFiles/3.25.2/CompilerIdC/CMakeCCompilerId.exe
+cmake-build-debug/CMakeFiles/3.25.2/CompilerIdC/CMakeCCompilerId.obj
+cmake-build-debug/CMakeFiles/3.25.2/CompilerIdCXX/CMakeCXXCompilerId.cpp
+cmake-build-debug/CMakeFiles/3.25.2/CompilerIdCXX/CMakeCXXCompilerId.exe
+cmake-build-debug/CMakeFiles/3.25.2/CompilerIdCXX/CMakeCXXCompilerId.obj
+cmake-build-debug/CMakeFiles/CMakeError.log

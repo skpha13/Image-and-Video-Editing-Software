@@ -2113,6 +2113,7 @@ void Menu<T>::projectEngine() {
                     getline(std::cin, temp);
 
                     if (currentProj == NULL) currentProj = new T();
+                    // tratare my exception
                     try {
                         currentProj->read(temp);
                         proj.insert(currentProj);
